@@ -1,82 +1,105 @@
 import datetime
-from sqlalchemy import create_engine
-from sqlalchemy import ForeignKey, String, Float, Date, DateTime
-from typing import Optional
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
+import enum
+from sqlalchemy import (
+    create_engine,
+    ForeignKey,
+    Text,
+    Date,
+    DateTime,
+)
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    relationship
+)
+from typing import (
+    Optional,
+    List
+)
 
-now = datetime.datetime.utcnow
+now = datetime.datetime.now
 
 
 class Base(DeclarativeBase):
-    pass
+    type_annotation_map = {
+        str: Text
+    }
+
+
+class UserRole(enum.Enum):
+    SELLER = 'seller'
+    CUSTOMER = 'customer'
+
+
+class ReviewRate(enum.Enum):
+    ONE = 1
+    TWO = 2
+    THREE = 3
+    FOUR = 4
+    FIVE = 5
 
 
 class User(Base):
-    __tablename__ = "user"
+    __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(32), unique=True)
-    email: Mapped[str] = mapped_column(String(128), unique=True)
-    name: Mapped[str] = mapped_column(String(32))
-    surname: Mapped[str] = mapped_column(String(32))
-    phone_number: Mapped[Optional[str]] = mapped_column(String(32))
-    birth_date: Mapped[Date]
-    role: Mapped[str] = mapped_column(String(32), nullable=False)
-    created_at: Mapped[DateTime] = mapped_column(default=now)
-    modified_at: Mapped[DateTime] = mapped_column(default=now, onupdate=now)
-
+    username: Mapped[str] = mapped_column(unique=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
+    surname: Mapped[str]
+    birth_date: Mapped[datetime] = mapped_column(Date)
+    phone_number: Mapped[Optional[str]]
+    role: Mapped[UserRole] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    modified_at: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now)
     __mapper_args__ = {'polymorphic_on': role}
 
-    def __repr__(self) -> str:
-        return f"User(id={self.id!r}, username={self.name!r}, role={self.role!r}, created_at={self.created_at!r}, " \
-               f"modified_at={self.modified_at!r})"
+    review: Mapped[List["Review"]] = relationship(back_populates="user")
 
 
 class Seller(User):
-    __tablename__ = "seller"
-    id: Mapped[int] = mapped_column(ForeignKey("user.id"), primary_key=True)
-    company_name: Mapped[str] = mapped_column(String(32))
-
-    __mapper_args__ = {'polymorphic_identity': 'seller'}
+    __tablename__ = "sellers"
+    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    company_name: Mapped[str]
+    __mapper_args__ = {'polymorphic_identity': UserRole.SELLER}
 
 
 class CustomerAddress(Base):
-    __tablename__ = "customer_address"
+    __tablename__ = "customers_addresses"
     id: Mapped[int] = mapped_column(primary_key=True)
-    city: Mapped[str] = mapped_column(String(64))
-    country: Mapped[str] = mapped_column(String(32))
-    postcode: Mapped[str] = mapped_column(String(32))
-    street_name: Mapped[str] = mapped_column(String(32))
-    street_number: Mapped[str] = mapped_column(String(32))
+    street: Mapped[str]
+    city: Mapped[str]
+    country: Mapped[str]
+    postal_code: Mapped[str]
+    address_line1: Mapped[Optional[str]]
+    address_line2: Mapped[Optional[str]]
 
-    customer: Mapped["Customer"] = relationship(back_populates="customer_address")
+    customer: Mapped["Customer"] = relationship(back_populates="address")
 
 
 class Customer(User):
-    __tablename__ = "customer"
-    id: Mapped[int] = mapped_column(ForeignKey("user.id"), primary_key=True)
-    address_id: Mapped[int] = mapped_column(ForeignKey("customer_address.id"))
+    __tablename__ = "customers"
+    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    __mapper_args__ = {'polymorphic_identity': UserRole.CUSTOMER}
 
-    __mapper_args__ = {'polymorphic_identity': 'customer'}
+    address_id: Mapped[int] = mapped_column(ForeignKey("customers_addresses.id"))
+    address: Mapped["CustomerAddress"] = relationship(back_populates="customer")
 
-    customer_address: Mapped["CustomerAddress"] = relationship(back_populates="customer")
 
-
-class Review:
-    __tablename__ = "review"
+class Review(Base):
+    __tablename__ = "reviews"
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))  # todo should be "costumers.id"?
-    title: Mapped[str] = mapped_column(String(124))
-    description: Mapped[str] = mapped_column(String(50000))
-    rating: Mapped[float] = mapped_column(Float(precision=3, decimal_return_scale=1))
-    created_at: Mapped[DateTime] = mapped_column(default=now)
-    modified_at: Mapped[DateTime] = mapped_column(default=now, onupdate=now)
+    title: Mapped[str]
+    body: Mapped[Optional[str]]
+    rating: Mapped[ReviewRate] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    modified_at: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now)
 
-    user = relationship(User, back_populates="reviews")
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))  # should be only related to Customer?
+    user: Mapped["User"] = relationship(back_populates="review")
 
 
-engine = create_engine('sqlite://', echo=True)  # todo: set to SQLite for testing (change in PostgresSQL)
+engine = create_engine("postgresql+psycopg2://postgres:1234@localhost/",
+                       echo=True)
 
-Base.metadata.create_all(engine)
+Base.metadata.create_all(bind=engine)
