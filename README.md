@@ -1,8 +1,7 @@
 
 # How to run the web application?
 
-In your shell write: 
+Open your shell inside the main directory and execute the following command:
 ```shell
-> export FLASK_APP=app.py
 > flask run
 ```

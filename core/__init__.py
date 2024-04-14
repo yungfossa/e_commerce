@@ -6,6 +6,7 @@ from .extensions import (
 )
 
 from .config import app_config
+from .models import *
 
 
 def create_app(config_name):
@@ -17,14 +18,13 @@ def create_app(config_name):
     bcrypt.init_app(app)
     login_manager.init_app(app)
     db.init_app(app)
-
+    # create all db models
     with app.app_context():
         db.create_all()
 
     # test route (it will be removed)
     @app.route('/')
     def test():
-        print(config_name)
         return "<h1>Hi, this is a test!</h1>"
 
     return app
