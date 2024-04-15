@@ -1,7 +1,11 @@
-
-# How to run the web application?
-
-Open your shell inside the main directory and execute the following command:
+# Installing dependencies
 ```shell
-> flask run
+$ uv venv
+$ source venv/source/activate
+$ uv pip install -r requirements.txt
+```
+
+# Running the application
+```shell
+$ flask run
 ```
