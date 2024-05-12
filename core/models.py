@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from .base_models import CRUDAuthModel, BaseModel
+from .base_models import BaseModel
 
 from typing import (
     Optional,
@@ -45,23 +45,23 @@ class ReviewRate(enum.Enum):
     FIVE = 5
 
 
-class Admin(CRUDAuthModel):
+class Admin(BaseModel):
     __tablename__ = "admins"
     id: Mapped[int] = mapped_column(primary_key=True)
     nickname: Mapped[str] = mapped_column(String(32))
-    _password: Mapped[Optional[str]] = mapped_column(String(64))
+    password: Mapped[Optional[str]] = mapped_column(String(64))
 
     def __repr__(self) -> str:
         return f"Admin(id={self.id!r}, nickname={self.nickname!r})"
 
 
-class User(CRUDAuthModel):
+class User(BaseModel):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(64), unique=True)
     name: Mapped[str] = mapped_column(String(32))
     surname: Mapped[str] = mapped_column(String(32))
-    _password: Mapped[Optional[str]] = mapped_column(String(64))
+    password: Mapped[Optional[str]] = mapped_column(String(64))
     birth_date: Mapped[datetime] = mapped_column(Date)
     phone_number: Mapped[Optional[str]] = mapped_column(String(32))
     user_type: Mapped[str] = mapped_column(String(32))

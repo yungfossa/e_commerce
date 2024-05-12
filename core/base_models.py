@@ -33,23 +33,6 @@ class CRUDMixin(object):
         return
 
 
-class CRUDAuthModel(CRUDMixin, db.Model):
-
-    def get_id(self):
-        return self.id
-
-    def get_password(self):
-        return self._password
-
-    def set_password(self, value):
-        self._password = bcrypt.generate_password_hash(value, 10).decode('utf-8')
-
-    def check_password(self, value):
-        return bcrypt.check_password_hash(self._password, value)
-
-    __abstract__ = True
-
-
 class BaseModel(CRUDMixin, db.Model):
     """Base model class the includes CRUD convenience methods."""
 

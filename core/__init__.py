@@ -2,8 +2,9 @@ from flask import Flask
 
 from .extensions import (
     bcrypt,
+    db,
+    jwt_manager,
     login_manager,
-    db
 )
 
 from .config import app_config
@@ -18,14 +19,14 @@ def create_app(config_name):
 
     bcrypt.init_app(app)
     login_manager.init_app(app)
+    jwt_manager.init_app(app)
     db.init_app(app)
 
     with app.app_context():
         db.drop_all()
         db.create_all()
 
-    @app.route('/')
-    def test():
-        return "<h1>Hi, this is a test!</h1>"
+    from .auth import bp as auth_bp
+    app.register_blueprint(auth_bp)
 
     return app

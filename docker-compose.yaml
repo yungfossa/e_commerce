@@ -1,11 +1,10 @@
-@@ -0,0 +1,16 @@
 version: '3.9'
 
 services:
   postgres:
     image: postgres:14-alpine
     ports:
-      - 5432:5432
+      - 1234:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -14,4 +13,4 @@ services:
       - POSTGRES_DB=deadbeef
 
 volumes:
-  - postgres_data
+  postgres_data:
