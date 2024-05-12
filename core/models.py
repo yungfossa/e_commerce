@@ -1,15 +1,7 @@
-from .extensions import (
-    db,
-    str_64,
-    str_32,
-    str_128,
-    num_10_2,
-    num_4_2,
-    text,
-    datetime_t,
-    date_t,
-    generate_hash
-)
+from datetime import datetime
+from decimal import Decimal
+
+from .base_models import CRUDAuthModel, BaseModel
 
 from typing import (
     Optional,
@@ -24,14 +16,11 @@ from sqlalchemy.orm import (
 
 from sqlalchemy import (
     ForeignKey,
-    UniqueConstraint,
     Table,
     Column,
     Integer,
-    func
+    func, String, Date, DateTime, Numeric, Text, CheckConstraint
 )
-
-from flask_login import UserMixin
 
 import enum
 
@@ -56,32 +45,28 @@ class ReviewRate(enum.Enum):
     FIVE = 5
 
 
-class Admin(db.Model):
+class Admin(CRUDAuthModel):
     __tablename__ = "admins"
     id: Mapped[int] = mapped_column(primary_key=True)
-    nickname: Mapped[str_32]
-    password_hash: Mapped[str_64]
-
-    def __init__(self, nickname, password):
-        self.nickname = nickname
-        self.password_hash = generate_hash(password)
+    nickname: Mapped[str] = mapped_column(String(32))
+    _password: Mapped[Optional[str]] = mapped_column(String(64))
 
     def __repr__(self) -> str:
         return f"Admin(id={self.id!r}, nickname={self.nickname!r})"
 
 
-class User(UserMixin, db.Model):
+class User(CRUDAuthModel):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str_64] = mapped_column(unique=True)
-    name: Mapped[str_32]
-    surname: Mapped[str_32]
-    password_hash: Mapped[str_64]
-    birth_date: Mapped[Optional[date_t]]
-    phone_number: Mapped[Optional[str_32]]
-    user_type: Mapped[str_32]
-    created_at: Mapped[datetime_t] = mapped_column(default=func.now())
-    modified_at: Mapped[datetime_t] = mapped_column(default=func.now(), onupdate=func.now())
+    email: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str] = mapped_column(String(32))
+    surname: Mapped[str] = mapped_column(String(32))
+    _password: Mapped[Optional[str]] = mapped_column(String(64))
+    birth_date: Mapped[datetime] = mapped_column(Date)
+    phone_number: Mapped[Optional[str]] = mapped_column(String(32))
+    user_type: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    modified_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
 
     delete_request: Mapped[Optional["DeleteRequest"]] = relationship(back_populates="user")
 
@@ -89,15 +74,6 @@ class User(UserMixin, db.Model):
         'polymorphic_identity': "user",
         'polymorphic_on': "user_type"
     }
-
-    def __init__(self, email, name, surname, password, birth_date, phone_number, user_type):
-        self.email = email
-        self.name = name
-        self.surname = surname
-        self.password_hash = generate_hash(password)
-        self.birth_date = birth_date
-        self.phone_number = phone_number
-        self.user_type = user_type
 
     def __repr__(self) -> str:
         return f"<User(id={self.id!r}, email={self.email!r}, " \
@@ -111,35 +87,26 @@ class Customer(User):
     address_id: Mapped[int] = mapped_column(ForeignKey("customer_addresses.id"))
 
     address: Mapped["CustomerAddress"] = relationship(back_populates="customer")
-    wishlist: Mapped[List["WishList"]] = relationship(back_populates="customer")
+    wishlist: Mapped[Optional[List["WishList"]]] = relationship(back_populates="customer")
     cart: Mapped["Cart"] = relationship(back_populates="customer")
-    review: Mapped[List["Review"]] = relationship(back_populates="customer")
-
-    __table_args__ = (UniqueConstraint("address_id"),)
+    review: Mapped[Optional[List["ProductReview"]]] = relationship(back_populates="customer")
 
     __mapper_args__ = {
         'polymorphic_identity': "customer",
     }
 
-    def __init__(self, **kwargs):
-        super(Customer, self).__init__(**kwargs)
-
 
 class Seller(User):
     __tablename__ = "sellers"
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    company_name: Mapped[str_32]
-    rating: Mapped[Optional[num_4_2]]
+    company_name: Mapped[str] = mapped_column(String(32))
+    rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 2))
 
-    listing: Mapped[List["Listing"]] = relationship(back_populates="seller")
+    listing: Mapped[Optional[List["Listing"]]] = relationship(back_populates="seller")
 
     __mapper_args__ = {
         'polymorphic_identity': "seller",
     }
-
-    def __init__(self, company_name, **kwargs):
-        super(Seller, self).__init__(**kwargs)
-        self.company_name = company_name
 
     def __repr__(self) -> str:
         return f"<Seller(id={self.id!r}, email={self.email!r}, " \
@@ -147,14 +114,14 @@ class Seller(User):
                f"created_at={self.created_at!r}, modified_at={self.modified_at!r})>"
 
 
-class CustomerAddress(db.Model):
+class CustomerAddress(BaseModel):
     __tablename__ = "customer_addresses"
     id: Mapped[int] = mapped_column(primary_key=True)
-    street: Mapped[str_128]
-    city: Mapped[str_64]
-    state: Mapped[str_64]
-    country: Mapped[str_64]
-    postal_code: Mapped[str_32]
+    street: Mapped[str] = mapped_column(String(128))
+    city: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(64))
+    country: Mapped[str] = mapped_column(String(64))
+    postal_code: Mapped[str] = mapped_column(String(32))
 
     customer: Mapped["Customer"] = relationship(back_populates="address")
 
@@ -165,12 +132,12 @@ class CustomerAddress(db.Model):
                f"postal_code='{self.postal_code}')>"
 
 
-class ProductCategory(db.Model):
+class ProductCategory(BaseModel):
     __tablename__ = "product_categories"
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str_32]
+    title: Mapped[str] = mapped_column(String(32))
 
-    word_occ: Mapped[List["WordOccurrence"]] = relationship(back_populates="category")
+    product: Mapped[List["Product"]] = relationship(back_populates="category")
 
     def __repr__(self) -> str:
         return f"<ProductCategory(id={self.id!r}, title={self.title!r})>"
@@ -178,23 +145,23 @@ class ProductCategory(db.Model):
 
 ProductWordOccurrence = Table(
     "product_word_occurrences",
-    db.Model.metadata,
+    BaseModel.metadata,
     Column("product_id", Integer, ForeignKey("products.id"), primary_key=True),
     Column("word_occurrence_id", Integer, ForeignKey("word_occurrences.id"), primary_key=True)
 )
 
 
-class Product(db.Model):
+class Product(BaseModel):
     __tablename__ = "products"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str_32]
-    description: Mapped[text]
-    image_src: Mapped[text]
+    name: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(Text)
+    image_src: Mapped[str] = mapped_column(Text)
     category_id: Mapped[int] = mapped_column(ForeignKey("product_categories.id"))
 
     category: Mapped["ProductCategory"] = relationship(back_populates="product")
-    wishlist_entry: Mapped[List["WishListEntry"]] = relationship(back_populates="product")
-    listing: Mapped[List["Listing"]] = relationship(back_populates="product")
+    wishlist_entry: Mapped[Optional[List["WishListEntry"]]] = relationship(back_populates="product")
+    listing: Mapped[Optional[List["Listing"]]] = relationship(back_populates="product")
     words: Mapped[List["WordOccurrence"]] = relationship(secondary=ProductWordOccurrence, back_populates="products")
 
     def __repr__(self) -> str:
@@ -202,12 +169,12 @@ class Product(db.Model):
                f"image_src={self.image_src}, category={self.category_id!r})>"
 
 
-class Listing(db.Model):
+class Listing(BaseModel):
     __tablename__ = "listings"
     id: Mapped[int] = mapped_column(primary_key=True)
     quantity: Mapped[int]
     available: Mapped[bool]
-    price: Mapped[num_10_2]
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     product_state: Mapped[ProductState]
     seller_id: Mapped[int] = mapped_column(ForeignKey("sellers.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
@@ -215,7 +182,7 @@ class Listing(db.Model):
     seller: Mapped["Seller"] = relationship(back_populates="listing")
     product: Mapped["Product"] = relationship(back_populates="listing")
     cart_entry: Mapped[List["CartEntry"]] = relationship(back_populates="listing")
-    review: Mapped[List["Review"]] = relationship(back_populates="listing")
+    review: Mapped[List["ProductReview"]] = relationship(back_populates="listing")
     order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="listing")
 
     def __repr__(self) -> str:
@@ -225,14 +192,14 @@ class Listing(db.Model):
                f"product_id={self.product_id!r})>"
 
 
-class Review(db.Model):
+class ProductReview(BaseModel):
     __tablename__ = "reviews"
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str_64]
-    description: Mapped[Optional[text]]
+    title: Mapped[str] = mapped_column(String(64))
+    description: Mapped[Optional[str]] = mapped_column(Text)
     rating: Mapped[ReviewRate]
-    created_at: Mapped[datetime_t] = mapped_column(default=func.now())
-    modified_at: Mapped[datetime_t] = mapped_column(default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    modified_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
     listing_id: Mapped[int] = mapped_column(ForeignKey("listings.id"))
 
@@ -246,10 +213,10 @@ class Review(db.Model):
                f"listing_id={self.listing_id!r})>"
 
 
-class CartEntry(db.Model):
+class CartEntry(BaseModel):
     __tablename__ = "cart_entries"
     id: Mapped[int] = mapped_column(primary_key=True)
-    amount: Mapped[num_10_2]
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     cart_id: Mapped[int] = mapped_column(ForeignKey("carts.id"))
     listing_id: Mapped[int] = mapped_column(ForeignKey("listings.id"))
 
@@ -261,7 +228,7 @@ class CartEntry(db.Model):
                f"cart_id={self.cart_id!r}, listing_id={self.listing_id!r})>"
 
 
-class Cart(db.Model):
+class Cart(BaseModel):
     __tablename__ = "carts"
     id: Mapped[int] = mapped_column(primary_key=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
@@ -269,13 +236,11 @@ class Cart(db.Model):
     customer: Mapped["Customer"] = relationship(back_populates="cart")
     cart_entry: Mapped[List["CartEntry"]] = relationship(back_populates="cart")
 
-    __table_args__ = (UniqueConstraint("customer_id"),)
-
     def __repr__(self) -> str:
         return f"<Cart(id={self.id!r}, customer_id={self.customer_id!r})>"
 
 
-class WishListEntry(db.Model):
+class WishListEntry(BaseModel):
     __tablename__ = "wishlist_entries"
     id: Mapped[int] = mapped_column(primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
@@ -289,10 +254,10 @@ class WishListEntry(db.Model):
                f"wishlist_id={self.wishlist_id!r})>"
 
 
-class WishList(db.Model):
+class WishList(BaseModel):
     __tablename__ = "wishlists"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str_32]
+    name: Mapped[str] = mapped_column(String(32))
     costumer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
 
     customer: Mapped["Customer"] = relationship(back_populates="wishlist")
@@ -303,7 +268,7 @@ class WishList(db.Model):
                f"customer_id={self.customer_id!r})>"
 
 
-class OrderEntry(db.Model):
+class OrderEntry(BaseModel):
     __tablename__ = "order_entries"
     id: Mapped[int] = mapped_column(primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
@@ -317,17 +282,17 @@ class OrderEntry(db.Model):
                f"listing_id={self.listing_id!r})>"
 
 
-class Order(db.Model):
+class Order(BaseModel):
     __tablename__ = "orders"
     id: Mapped[int] = mapped_column(primary_key=True)
-    price: Mapped[num_10_2]
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     order_status: Mapped[OrderStatus]
-    purchased_at: Mapped[Optional[datetime_t]]
-    address_street: Mapped[str_128]
-    address_city: Mapped[str_64]
-    address_state: Mapped[str_64]
-    address_country: Mapped[str_64]
-    address_postal_code: Mapped[str_32]
+    purchased_at: Mapped[Optional[datetime]] = mapped_column(DateTime)  # todo should be optional?
+    address_street: Mapped[str] = mapped_column(String(128))
+    address_city: Mapped[str] = mapped_column(String(64))
+    address_state: Mapped[str] = mapped_column(String(64))
+    address_country: Mapped[str] = mapped_column(String(64))
+    address_postal_code: Mapped[str] = mapped_column(String(32))
 
     order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="order")
 
@@ -339,16 +304,14 @@ class Order(db.Model):
                f"postal_code={self.address_postal_code})>"
 
 
-class DeleteRequest(db.Model):
+class DeleteRequest(BaseModel):
     __tablename__ = "delete_requests"
     id: Mapped[int] = mapped_column(primary_key=True)
-    reason: Mapped[text]
-    requested_at: Mapped[datetime_t] = mapped_column(default=func.now())
+    reason: Mapped[str] = mapped_column(Text)
+    requested_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     user: Mapped["User"] = relationship(back_populates="delete_request")
-
-    __table_args__ = (UniqueConstraint("user_id"),)
 
     def __repr__(self) -> str:
         return f"<DeleteRequest(id={self.id}, reason='{self.reason}', " \
@@ -357,11 +320,10 @@ class DeleteRequest(db.Model):
     # todo ADD CHECK CONSTRAINT (if now - requested_at > 30 -> delete). This check must be executed once a day
 
 
-class WordOccurrence(db.Model):
+class WordOccurrence(BaseModel):
     __tablename__ = "word_occurrences"
     id: Mapped[int] = mapped_column(primary_key=True)
     word_id: Mapped[int] = mapped_column(ForeignKey("words.id"))
-
     word: Mapped["Word"] = relationship(back_populates="word_occ")
     products: Mapped[List["Product"]] = relationship(secondary=ProductWordOccurrence, back_populates="words")
 
@@ -369,10 +331,10 @@ class WordOccurrence(db.Model):
         return f"<Word(id={self.id!r}, word_id={self.word_id!r})>"
 
 
-class Word(db.Model):
+class Word(BaseModel):
     __tablename__ = "words"
     id: Mapped[int] = mapped_column(primary_key=True)
-    word: Mapped[str_32]
+    word: Mapped[str] = mapped_column(String(32))
 
     word_occ: Mapped[List["WordOccurrence"]] = relationship(back_populates="word")
 
