@@ -30,7 +30,7 @@ def signup():
         surname=surname,
         password=bcrypt.generate_password_hash(password, 10).decode('utf-8'),
         birth_date=datetime.datetime.now(),
-        user_type="customer"
+        user_type="admin"
     )
 
     return jsonify({'message': 'user created successfully'}), 201
@@ -62,13 +62,20 @@ def required_user_type(types: List[str]):
             if current_user.get('user_type') not in types:
                 return jsonify({'message': 'Unauthorized'}), 403
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
-@bp.route('/protected', methods=['GET'])
-@required_user_type(['customer', 'admin'])
-def protected():
-    current_user = get_jwt()
-    print(current_user)
-    return jsonify(logged_in_as=current_user.get('sub'),user_type=current_user.get('user_type')), 200
+@bp.route('/users', methods=['GET'])
+@required_user_type(['admin'])
+def users():
+    us = User.query.all()
+    return jsonify(users=[
+        {
+            'email': u.email,
+            'name': u.name,
+            'surname': u.surname,
+            'user_type': u.user_type,
+        } for u in us]), 200

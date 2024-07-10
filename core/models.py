@@ -45,16 +45,6 @@ class ReviewRate(enum.Enum):
     FIVE = 5
 
 
-class Admin(BaseModel):
-    __tablename__ = "admins"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    nickname: Mapped[str] = mapped_column(String(32))
-    password: Mapped[Optional[str]] = mapped_column(String(64))
-
-    def __repr__(self) -> str:
-        return f"Admin(id={self.id!r}, nickname={self.nickname!r})"
-
-
 class User(BaseModel):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -93,6 +83,18 @@ class Customer(User):
 
     __mapper_args__ = {
         'polymorphic_identity': "customer",
+    }
+
+
+class Admin(User):
+    __tablename__ = "admins"
+    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+
+    def __repr__(self) -> str:
+        return f"Admin(id={self.id!r})"
+
+    __mapper_args__ = {
+        'polymorphic_identity': "admin",
     }
 
 

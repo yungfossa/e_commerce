@@ -1,35 +1,114 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import {useContext, useEffect, useState} from 'react'
+import styled from "styled-components";
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faCheckCircle} from "@fortawesome/free-regular-svg-icons";
+import {useAppDispatch, useAppSelector} from "./hooks.ts";
+import {authenticate} from "./store/user.ts";
+import AlertContext from "./components/alert.tsx";
+
+const Wrapper = styled.table`
+`;
+
+const Row = styled.tr`
+`;
+
+const MIN_COLUMN_WIDTH = 150;
+
+const Column = styled.td<{ width?: number; }>`
+    width: ${props => props.width || MIN_COLUMN_WIDTH}px;
+    background-color: white;
+    color: black;
+`;
+
+type UserType = 'customer' | 'seller' | 'admin';
+
+interface User {
+    name: string;
+    surname: string;
+    user_type: UserType;
+}
+
+function UsersTable(users: User[]) {
+    return <Wrapper>
+        <Row>
+            <Column width={300}>Name</Column>
+            <Column>Surname</Column>
+            <Column>User Type</Column>
+        </Row>
+        {users.map(u => {
+            return (
+                <Row>
+                    <Column width={300}>{u.name}</Column>
+                    <Column>{u.surname}</Column>
+                    <Column>{u.user_type === 'admin' && <FontAwesomeIcon icon={faCheckCircle}/>}</Column>
+                </Row>
+            );
+        })}
+    </Wrapper>
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [users, setUsers] = useState<User[]>([]);
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    const {showAlert} = useContext(AlertContext);
+
+    useEffect(() => {
+        showAlert("alert 1", "error")
+    }, []);
+
+    useEffect(() => {
+        showAlert("alert 1", "error")
+    }, []);
+
+    const access_token = useAppSelector(s => s.user.access_token);
+    const fetching = useAppSelector(s => s.user.fetching);
+
+    const dispatch = useAppDispatch();
+
+    useEffect(() => {
+        showAlert("alert 1", "error")
+        dispatch(authenticate({'email': 'email', 'password': 'password'}));
+        showAlert("alert 1", "error")
+    }, []);
+
+    useEffect(() => {
+        console.log(fetching)
+        showAlert("alert 1", "error")
+    }, [fetching]);
+
+    useEffect(() => {
+        console.log(access_token)
+        showAlert("alert 1", "error")
+    }, [access_token]);
+
+    useEffect(() => {
+        if (access_token === '') {
+            return;
+        }
+
+        fetch('http://localhost:5000/users', {
+                headers: {
+                    'Authorization': `Bearer ${access_token}`
+                }
+            }
+        )
+            .then(r => r.json())
+            .then(r => {
+                console.log(r.users);
+                showAlert("alert 1", "error")
+                setUsers(r.users);
+            })
+    }, [access_token]);
+
+    if (fetching) {
+        return "fetching"
+    }
+
+    if (!users) {
+        return <>loading...</>
+    }
+
+    return UsersTable(users)
 }
 
 export default App
