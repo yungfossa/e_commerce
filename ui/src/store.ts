@@ -1,11 +1,5 @@
-export class AppDispatch {
+export class AppDispatch {}
 
-}
+export class AppStore {}
 
-export class AppStore {
-
-}
-
-export class RootState {
-
-}
+export class RootState {}

@@ -15,6 +15,5 @@ const Wrapper = styled.div`
 `;
 
 export default function Alert() {
-    return <Wrapper></Wrapper>
-
+	return <Wrapper></Wrapper>;
 }

@@ -3,7 +3,7 @@ import styled from "styled-components";
 const DEFAULT_WIDTH = 100;
 
 const Wrapper = styled.input<{ width?: number }>`
-    width: ${props => props.width || DEFAULT_WIDTH}px;
+    width: ${(props) => props.width || DEFAULT_WIDTH}px;
     height: 40px;
     line-height: 28px;
     margin: 1rem;
@@ -17,11 +17,24 @@ const Wrapper = styled.input<{ width?: number }>`
 `;
 
 interface Props {
-    placeholder: string
-    password?: boolean
-    width?: number,
+	placeholder: string;
+	password?: boolean;
+	width?: number;
+	setInput: (s: string) => void;
 }
 
-export default function TextInput({ placeholder, password, width }: Props) {
-    return <Wrapper width={width} type={password ? "password" : "text"} placeholder={placeholder}></Wrapper>
+export default function TextInput({
+	placeholder,
+	password,
+	width,
+	setInput,
+}: Props) {
+	return (
+		<Wrapper
+			width={width}
+			type={password ? "password" : "text"}
+			placeholder={placeholder}
+			onInput={(e) => setInput(e.target.value)}
+		></Wrapper>
+	);
 }

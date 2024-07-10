@@ -3,7 +3,7 @@ import styled from "styled-components";
 const DEFAULT_WIDTH = 100;
 
 const Wrapper = styled.button<{ width?: number }>`
-    width: ${props => props.width || DEFAULT_WIDTH}px;
+    width: ${(props) => props.width || DEFAULT_WIDTH}px;
     height: 40px;
     line-height: 28px;
     margin: 1rem;
@@ -22,11 +22,15 @@ const Wrapper = styled.button<{ width?: number }>`
 `;
 
 interface Props {
-    text: string
-    width?: number,
-    onClick?: () => void
+	text: string;
+	width?: number;
+	onClick?: () => void;
 }
 
 export default function Button({ text, width, onClick }: Props) {
-    return <Wrapper width={width} onClick={onClick}>{text}</Wrapper>
+	return (
+		<Wrapper width={width} onClick={onClick}>
+			{text}
+		</Wrapper>
+	);
 }
