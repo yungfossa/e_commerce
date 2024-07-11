@@ -21,7 +21,7 @@ const IconWrapper = styled.div`
     position: fixed;
     color: white;
     display: flex;
-    width: calc(100% - 700px);
+    width: 50%;
     height: 100vh;
     align-content: space-around;
     align-items: center;
@@ -30,13 +30,15 @@ const IconWrapper = styled.div`
 
 const PanelWrapper = styled.div`
     background: white;
-    width: 700px;
+    width: 50%;
     height: 100vh;
     float: right;
-    padding-top: 300px;
     display: flex;
-    align-items: center;
     flex-direction: column;
+
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
 `;
 
 export default function LoginPage() {
@@ -68,6 +70,13 @@ export default function LoginPage() {
 			</IconWrapper>
 			<PanelWrapper>
 				<h1> Shop Sphere </h1>
+				<Text size="medium">
+					Don't have an account? <Link to="/register">Sign Up</Link>
+				</Text>
+				{/* TODO proper padding */}
+				<br />
+				<br />
+				<br />
 				<TextInput
 					width={300}
 					placeholder="Enter your email address"
@@ -81,7 +90,7 @@ export default function LoginPage() {
 				/>
 				<Button width={300} text="Log In" onClick={() => submit()}></Button>
 				<Text size="medium">
-					Don't have an account? <Link to="/register">Sign Up</Link>
+					<Link to="/register">Forgot your password?</Link>
 				</Text>
 			</PanelWrapper>
 		</Wrapper>

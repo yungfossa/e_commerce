@@ -22,7 +22,7 @@ const IconWrapper = styled.div`
     position: fixed;
     color: white;
     display: flex;
-    width: calc(100% - 700px);
+    width: 50%;
     height: 100vh;
     align-content: space-around;
     align-items: center;
@@ -31,13 +31,16 @@ const IconWrapper = styled.div`
 
 const PanelWrapper = styled.div`
     background: white;
-    width: 700px;
+    width: 50%;
     height: 100vh;
     float: right;
-    padding-top: 300px;
+    margin: 0 auto;
     display: flex;
-    align-items: center;
     flex-direction: column;
+
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
 `;
 
 export default function RegisterPage() {
@@ -70,6 +73,13 @@ export default function RegisterPage() {
 			</IconWrapper>
 			<PanelWrapper>
 				<h1> Shop Sphere </h1>
+				<Text size="medium">
+					Already signed up? <Link to="/login">Log In</Link>
+				</Text>
+				{/* TODO proper padding */}
+				<br />
+				<br />
+				<br />
 				<TextInput
 					width={300}
 					placeholder="Enter your email address"
@@ -86,9 +96,6 @@ export default function RegisterPage() {
 					setPassword={setPassword}
 				/>
 				<Button width={300} text="Sign Up" onClick={() => submit()}></Button>
-				<Text size="medium">
-					Already signed up? <Link to="/login">Log In</Link>
-				</Text>
 			</PanelWrapper>
 		</Wrapper>
 	);
