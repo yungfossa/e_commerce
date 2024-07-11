@@ -14,19 +14,24 @@ const Wrapper = styled.input<{ width?: number }>`
     background-color: #f3f3f4;
     color: #0d0c22;
     transition: .3s ease;
+
+    // makes buttons and input fields the same width
+    box-sizing: border-box;
 `;
 
 interface Props {
 	placeholder: string;
 	password?: boolean;
 	width?: number;
-	setInput: (s: string) => void;
+	valid: bool;
+	setInput?: (s: string) => void;
 }
 
 export default function TextInput({
 	placeholder,
 	password,
 	width,
+	valid,
 	setInput,
 }: Props) {
 	return (

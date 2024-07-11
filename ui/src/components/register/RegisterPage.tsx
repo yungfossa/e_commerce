@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import TextInput from "../../shared/input/TextInput.tsx";
+import PasswordInput from "../../shared/input/PasswordInput.tsx";
 import Text from "../../shared/Text.tsx";
 import Button from "../../shared/input/Button.tsx";
 import { useMemo, useState, useContext } from "react";
@@ -39,9 +40,10 @@ const PanelWrapper = styled.div`
     flex-direction: column;
 `;
 
-export default function LoginPage() {
+export default function RegisterPage() {
 	const dispatch = useAppDispatch();
 
+	const [email, setEmail] = useState("");
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 
@@ -71,17 +73,21 @@ export default function LoginPage() {
 				<TextInput
 					width={300}
 					placeholder="Enter your email address"
-					setInput={setUsername}
+					setInput={setEmail}
 				/>
 				<TextInput
 					width={300}
-					password
-					placeholder="Enter your password"
-					setInput={setPassword}
+					placeholder="Enter your username"
+					setInput={setUsername}
 				/>
-				<Button width={300} text="Log In" onClick={() => submit()}></Button>
+				<PasswordInput
+					width={300}
+					placeholder="Enter your password"
+					setPassword={setPassword}
+				/>
+				<Button width={300} text="Sign Up" onClick={() => submit()}></Button>
 				<Text size="medium">
-					Don't have an account? <Link to="/register">Sign Up</Link>
+					Already signed up? <Link to="/login">Log In</Link>
 				</Text>
 			</PanelWrapper>
 		</Wrapper>

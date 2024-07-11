@@ -46,7 +46,7 @@ interface Color {
 	bg: string;
 }
 
-function colorSeverity(t: AlertType): Color {
+function computeColorFromSeverity(t: AlertType): Color {
 	switch (t) {
 		case "success":
 			// TODO pick a color for successful alerts
@@ -76,9 +76,10 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
 		<AlertContext.Provider value={{ alerts, showAlert }}>
 			<AlertsWrapper>
 				{alerts.map((a) => (
+					// TODO bg and color should be swapped, and we shouldn't call computeColorFromSeverity twice
 					<AlertWrapper
-						bg={colorSeverity(a.type).bg}
-						color={colorSeverity(a.type).color}
+						bg={computeColorFromSeverity(a.type).bg}
+						color={computeColorFromSeverity(a.type).color}
 					>
 						{a.message}
 					</AlertWrapper>
