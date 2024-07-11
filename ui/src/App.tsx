@@ -5,6 +5,7 @@ import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import { useAppDispatch, useAppSelector } from "./hooks.ts";
 import { authenticate } from "./store/user.ts";
 import AlertContext from "./components/alert.tsx";
+import Header from "./shared/Header.tsx";
 
 const Wrapper = styled.table`
 `;
@@ -86,7 +87,12 @@ function App() {
 		return <>loading...</>;
 	}
 
-	return UsersTable(users);
+	return (
+		<>
+			<Header />
+		</>
+	);
+	// return UsersTable(users);
 }
 
 export default App;
