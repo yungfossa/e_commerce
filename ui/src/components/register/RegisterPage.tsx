@@ -57,7 +57,7 @@ export default function RegisterPage() {
 	const submit = () => {
 		dispatch(authenticate({ email: username, password }))
 			.unwrap()
-			.then((e) => navigate("/"))
+			.then((e) => navigate("/login"))
 			.catch((e) => showAlert(e.message, "error"));
 	};
 

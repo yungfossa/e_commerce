@@ -25,7 +25,11 @@ const ConstraintWrapper = styled.li<{ valid: bool }>`
 	color: ${(props) => (props.valid ? "green" : "red")};
 `;
 
-function renderPasswordMatchedConstraints(c: PasswordMatchedConstraints) {
+function renderPasswordMatchedConstraints(isPasswordValid: bool, c: PasswordMatchedConstraints) {
+	if (isPasswordValid === undefined || isPasswordValid) {
+		return <></>;					
+	}
+
 	return (
 		<Wrapper>
 			Password must contain:
@@ -75,9 +79,7 @@ export default function PasswordInput({ width, setPassword }: Props) {
 				placeholder="Enter your password"
 				setInput={checkPassword}
 			/>
-			{isPasswordValid !== undefined &&
-				!isPasswordValid &&
-				renderPasswordMatchedConstraints(passwordMatchedConstraints)}
+			{renderPasswordMatchedConstraints(isPasswordValid, passwordMatchedConstraints)}
 		</>
 	);
 }

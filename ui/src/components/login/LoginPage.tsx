@@ -43,13 +43,12 @@ const PanelWrapper = styled.div`
 
 export default function LoginPage() {
 	const dispatch = useAppDispatch();
-
-	const [username, setUsername] = useState("");
-	const [password, setPassword] = useState("");
-
 	const navigate = useNavigate();
 
 	const { showAlert } = useContext(AlertContext);
+
+	const [username, setUsername] = useState("");
+	const [password, setPassword] = useState("");
 
 	const submit = () => {
 		dispatch(authenticate({ email: username, password }))
@@ -83,7 +82,7 @@ export default function LoginPage() {
 					placeholder="Enter your password"
 					setInput={setPassword}
 				/>
-				<Button width={300} text="Log In" onClick={() => submit()}></Button>
+				<Button width={300} text="Log In" onClick={submit}></Button>
 				<Text size="medium">
 					<Link to="/register">Forgot your password?</Link>
 				</Text>

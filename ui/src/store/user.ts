@@ -11,10 +11,7 @@ export const authenticate = createAsyncThunk(
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({
-				email: email,
-				password: password,
-			}),
+			body: JSON.stringify({ email, password }),
 		})
 			.then((r) => {
 				if (!r.ok) {
@@ -31,13 +28,13 @@ export const authenticate = createAsyncThunk(
 	},
 );
 
-type Status = "idle" | "pending" | "success" | "failed";
+type Status = "unknown" | "pending" | "success" | "failed";
 
 export const userSlice = createSlice({
 	name: "user",
 	initialState: {
 		access_token: "",
-		status: "idle",
+		status: "unknown",
 	},
 	reducers: {},
 	extraReducers: (builder) => {
@@ -49,7 +46,6 @@ export const userSlice = createSlice({
 			state.status = "success";
 		});
 		builder.addCase(authenticate.rejected, (state, action) => {
-			console.log(action.payload.message);
 			state.status = "failed";
 		});
 	},
