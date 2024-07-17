@@ -19,7 +19,7 @@ from sqlalchemy import (
     Table,
     Column,
     Integer,
-    func, String, Date, DateTime, Numeric, Text, CheckConstraint
+    func, String, Date, DateTime, Numeric, Text
 )
 
 import enum
@@ -289,7 +289,7 @@ class Order(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     order_status: Mapped[OrderStatus]
-    purchased_at: Mapped[Optional[datetime]] = mapped_column(DateTime)  # todo should be optional?
+    purchased_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     address_street: Mapped[str] = mapped_column(String(128))
     address_city: Mapped[str] = mapped_column(String(64))
     address_state: Mapped[str] = mapped_column(String(64))
@@ -318,8 +318,6 @@ class DeleteRequest(BaseModel):
     def __repr__(self) -> str:
         return f"<DeleteRequest(id={self.id}, reason='{self.reason}', " \
                f"requested_at={self.requested_at}, user_id={self.user_id})>"
-
-    # todo ADD CHECK CONSTRAINT (if now - requested_at > 30 -> delete). This check must be executed once a day
 
 
 class WordOccurrence(BaseModel):

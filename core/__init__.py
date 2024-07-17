@@ -1,11 +1,11 @@
 from flask import Flask
-from flask_cors import CORS
 
 from .extensions import (
     bcrypt,
     db,
     jwt_manager,
     login_manager,
+    cors
 )
 
 from .config import app_config
@@ -14,11 +14,11 @@ from .models import *
 
 def create_app(config_name):
     app = Flask(__name__)
-    CORS(app)
 
     app.config.from_object(app_config[config_name])
     app.config.from_pyfile('config.py')
 
+    cors.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)
     jwt_manager.init_app(app)

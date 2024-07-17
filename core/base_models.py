@@ -1,4 +1,4 @@
-from .extensions import db, bcrypt
+from .extensions import db
 
 
 class CRUDMixin(object):
