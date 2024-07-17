@@ -11,7 +11,6 @@ from .extensions import (
 from .config import app_config
 from .models import *
 
-
 def create_app(config_name):
     app = Flask(__name__)
 
@@ -27,7 +26,7 @@ def create_app(config_name):
     with app.app_context():
         db.drop_all()
         db.create_all()
-
+                
     from .auth import bp as auth_bp
     app.register_blueprint(auth_bp)
 

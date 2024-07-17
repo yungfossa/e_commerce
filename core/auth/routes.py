@@ -3,9 +3,9 @@ from functools import wraps
 from typing import List
 
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
-from core import User, bcrypt
+from core import User, bcrypt, UserType
 
 bp = Blueprint('auth', __name__)
 
@@ -30,7 +30,7 @@ def signup():
         surname=surname,
         password=bcrypt.generate_password_hash(password, 10).decode('utf-8'),
         birth_date=datetime.datetime.now(),
-        user_type="admin"
+        user_type=UserType.ADMIN
     )
 
     return jsonify({'message': 'user created successfully'}), 201
@@ -67,6 +67,16 @@ def required_user_type(types: List[str]):
 
     return decorator
 
+@bp.route('/me', methods=['GET'])
+@required_user_type(['seller', 'customer'])
+def profile():
+    current_user_email = get_jwt_identity()
+    user = User.query.filter_by(email=current_user_email).first()
+    
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+    
+    return jsonify(user.to_dict()), 200
 
 @bp.route('/users', methods=['GET'])
 @required_user_type(['admin'])
