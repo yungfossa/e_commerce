@@ -1,35 +1,22 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional, List
 
-from .base_models import BaseModel
+from sqlalchemy import (ForeignKey, Table, Column, 
+                        Integer, func, String, Date, 
+                        DateTime, Numeric, Text, Enum)
 
-from typing import (
-    Optional,
-    List,
-)
-
-from sqlalchemy.orm import (
-    Mapped,
-    mapped_column,
-    relationship
-)
-
-from sqlalchemy import (
-    ForeignKey,
-    Table,
-    Column,
-    Integer,
-    func, String, Date, DateTime, Numeric, Text
-)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import enum
 
+from .base_models import BaseModel
 
 class UserType(enum.Enum):
     CUSTOMER = 'customer'
     SELLER = 'seller'
     ADMIN = 'admin'
-    
+
 
 class ProductState(enum.Enum):
     NEW = 'new'
@@ -49,27 +36,10 @@ class ReviewRate(enum.Enum):
     THREE = 3
     FOUR = 4
     FIVE = 5
-    
-    
-class UserRole(BaseModel):
-    __tablename__ = 'user_roles'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    role: Mapped[str] = mapped_column(String(32))
-    
-    user: Mapped["User"] = relationship(back_populates="user_roles")
- 
-class Role(BaseModel):
-    _tablename__ = 'roles'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(32), unique=True)
-        
-    def __repr__(self) -> str:
-        return f"<Role(id={self.id!r}, name={self.name!r})>"
-    
-    
+
 class User(BaseModel):
     __tablename__ = 'users'
+    
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(64), unique=True)
     name: Mapped[str] = mapped_column(String(32))
@@ -77,11 +47,10 @@ class User(BaseModel):
     password: Mapped[Optional[str]] = mapped_column(String(64))
     birth_date: Mapped[datetime] = mapped_column(Date)
     phone_number: Mapped[Optional[str]] = mapped_column(String(32))
-    user_type: Mapped[str] = mapped_column(String(32))
+    user_type: Mapped[UserType] = mapped_column(Enum(UserType))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     modified_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
 
-    user_roles: Mapped[List["UserRole"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     delete_request: Mapped[Optional['DeleteRequest']] = relationship(back_populates="user")
 
     __mapper_args__ = {
@@ -93,19 +62,6 @@ class User(BaseModel):
         return f"<User(id={self.id!r}, email={self.email!r}, " \
                f"user_type={self.user_type!r}, created_at={self.created_at!r}, " \
                f"modified_at={self.modified_at!r})>"
-    
-    def assign_role(self):
-        if self.user_type not in ["customer", "seller", "admin"]:
-            raise ValueError("Invalid user type")
-        user_role = UserRole(role=self.user_type)
-        self.user_roles.append(user_role)
-            
-    @classmethod
-    def create(cls, **kwargs):
-        user = super().create(**kwargs)
-        user.assign_role()
-        return user.save()
-
 
 class Admin(User):
     __tablename__ = "admins"
@@ -117,8 +73,8 @@ class Admin(User):
     __mapper_args__ = {
         'polymorphic_identity': UserType.ADMIN,
     }
-    
-    
+
+
 class Seller(User):
     __tablename__ = "sellers"
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
@@ -130,12 +86,19 @@ class Seller(User):
     __mapper_args__ = {
         'polymorphic_identity': UserType.SELLER,
     }
+    
+    def to_dict(self):
+        """Extend the User to_dict method to include additional fields."""
+        data = super().to_dict()
+        data.update({
+            'company_name': self.company_name,
+            'rating': float(self.rating) if self.rating else None
+        })
 
     def __repr__(self) -> str:
         return f"<Seller(id={self.id!r}, email={self.email!r}, " \
                f"company_name={self.company_name!r}, user_type={self.user_type!r}," \
                f"created_at={self.created_at!r}, modified_at={self.modified_at!r})>"
-
 
 class Customer(User):
     __tablename__ = "customers"
@@ -151,6 +114,10 @@ class Customer(User):
         'polymorphic_identity': UserType.CUSTOMER,
     }
 
+    def __repr__(self) -> str:
+        return f"<Customer(id={self.id!r}, email={self.email!r}, " \
+               f"user_type={self.user_type!r}, created_at={self.created_at!r}, " \
+               f"modified_at={self.modified_at!r})>"
 
 class CustomerAddress(BaseModel):
     __tablename__ = "customer_addresses"
