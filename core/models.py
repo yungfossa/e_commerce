@@ -25,6 +25,12 @@ from sqlalchemy import (
 import enum
 
 
+class UserType(enum.Enum):
+    CUSTOMER = 'customer'
+    SELLER = 'seller'
+    ADMIN = 'admin'
+    
+
 class ProductState(enum.Enum):
     NEW = 'new'
     USED = 'used'
@@ -43,10 +49,27 @@ class ReviewRate(enum.Enum):
     THREE = 3
     FOUR = 4
     FIVE = 5
-
-
+    
+    
+class UserRole(BaseModel):
+    __tablename__ = 'user_roles'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    role: Mapped[str] = mapped_column(String(32))
+    
+    user: Mapped["User"] = relationship(back_populates="user_roles")
+ 
+class Role(BaseModel):
+    _tablename__ = 'roles'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(32), unique=True)
+        
+    def __repr__(self) -> str:
+        return f"<Role(id={self.id!r}, name={self.name!r})>"
+    
+    
 class User(BaseModel):
-    __tablename__ = "users"
+    __tablename__ = 'users'
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(64), unique=True)
     name: Mapped[str] = mapped_column(String(32))
@@ -58,7 +81,8 @@ class User(BaseModel):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     modified_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
 
-    delete_request: Mapped[Optional["DeleteRequest"]] = relationship(back_populates="user")
+    user_roles: Mapped[List["UserRole"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    delete_request: Mapped[Optional['DeleteRequest']] = relationship(back_populates="user")
 
     __mapper_args__ = {
         'polymorphic_identity': "user",
@@ -69,6 +93,48 @@ class User(BaseModel):
         return f"<User(id={self.id!r}, email={self.email!r}, " \
                f"user_type={self.user_type!r}, created_at={self.created_at!r}, " \
                f"modified_at={self.modified_at!r})>"
+    
+    def assign_role(self):
+        if self.user_type not in ["customer", "seller", "admin"]:
+            raise ValueError("Invalid user type")
+        user_role = UserRole(role=self.user_type)
+        self.user_roles.append(user_role)
+            
+    @classmethod
+    def create(cls, **kwargs):
+        user = super().create(**kwargs)
+        user.assign_role()
+        return user.save()
+
+
+class Admin(User):
+    __tablename__ = "admins"
+    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+
+    def __repr__(self) -> str:
+        return f"Admin(id={self.id!r})"
+
+    __mapper_args__ = {
+        'polymorphic_identity': UserType.ADMIN,
+    }
+    
+    
+class Seller(User):
+    __tablename__ = "sellers"
+    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    company_name: Mapped[str] = mapped_column(String(32))
+    rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 2))
+
+    listing: Mapped[Optional[List["Listing"]]] = relationship(back_populates="seller")
+
+    __mapper_args__ = {
+        'polymorphic_identity': UserType.SELLER,
+    }
+
+    def __repr__(self) -> str:
+        return f"<Seller(id={self.id!r}, email={self.email!r}, " \
+               f"company_name={self.company_name!r}, user_type={self.user_type!r}," \
+               f"created_at={self.created_at!r}, modified_at={self.modified_at!r})>"
 
 
 class Customer(User):
@@ -82,38 +148,8 @@ class Customer(User):
     review: Mapped[Optional[List["ProductReview"]]] = relationship(back_populates="customer")
 
     __mapper_args__ = {
-        'polymorphic_identity': "customer",
+        'polymorphic_identity': UserType.CUSTOMER,
     }
-
-
-class Admin(User):
-    __tablename__ = "admins"
-    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-
-    def __repr__(self) -> str:
-        return f"Admin(id={self.id!r})"
-
-    __mapper_args__ = {
-        'polymorphic_identity': "admin",
-    }
-
-
-class Seller(User):
-    __tablename__ = "sellers"
-    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    company_name: Mapped[str] = mapped_column(String(32))
-    rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 2))
-
-    listing: Mapped[Optional[List["Listing"]]] = relationship(back_populates="seller")
-
-    __mapper_args__ = {
-        'polymorphic_identity': "seller",
-    }
-
-    def __repr__(self) -> str:
-        return f"<Seller(id={self.id!r}, email={self.email!r}, " \
-               f"company_name={self.company_name!r}, user_type={self.user_type!r}," \
-               f"created_at={self.created_at!r}, modified_at={self.modified_at!r})>"
 
 
 class CustomerAddress(BaseModel):
