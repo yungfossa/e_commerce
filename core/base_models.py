@@ -35,5 +35,8 @@ class CRUDMixin(object):
 
 class BaseModel(CRUDMixin, db.Model):
     """Base model class the includes CRUD convenience methods."""
-
     __abstract__ = True
+    
+    def to_dict(self):
+        """Convert model instance to a dictionary"""
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
