@@ -1,6 +1,5 @@
 from .extensions import db
 
-
 class CRUDMixin(object):
     """Mixin that adds convenience methods for CRUD (Create, Read, Update, Delete) database operations"""
 
@@ -38,5 +37,5 @@ class BaseModel(CRUDMixin, db.Model):
     __abstract__ = True
     
     def to_dict(self):
-        """Convert model instance to a dictionary"""
+        """Convert model instance to a dictionary with keys ordered as declared in the model"""
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

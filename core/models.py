@@ -1,34 +1,25 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List
-
-from sqlalchemy import (ForeignKey, Table, Column, 
-                        Integer, func, String, Date, 
-                        DateTime, Numeric, Text, Enum)
-
+from sqlalchemy import ForeignKey, Table, Column, Integer, func, String, Date, DateTime, Numeric, Text, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-import enum
-
 from .base_models import BaseModel
+import enum
 
 class UserType(enum.Enum):
     CUSTOMER = 'customer'
     SELLER = 'seller'
     ADMIN = 'admin'
 
-
 class ProductState(enum.Enum):
     NEW = 'new'
     USED = 'used'
     REFURBISHED = 'refurbished'
 
-
 class OrderStatus(enum.Enum):
     PENDING = 'pending'
     SHIPPED = 'shipped'
     DELIVERED = 'delivered'
-
 
 class ReviewRate(enum.Enum):
     ONE = 1
@@ -36,7 +27,7 @@ class ReviewRate(enum.Enum):
     THREE = 3
     FOUR = 4
     FIVE = 5
-
+    
 class User(BaseModel):
     __tablename__ = 'users'
     
@@ -55,8 +46,21 @@ class User(BaseModel):
 
     __mapper_args__ = {
         'polymorphic_identity': "user",
-        'polymorphic_on': "user_type"
+        'polymorphic_on': user_type
     }
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'name': self.name,
+            'surname': self.surname,
+            'birth_date': self.birth_date.isoformat() if self.birth_date else None,
+            'phone_number': self.phone_number,
+            'user_type': self.user_type.value,
+            'created_at': self.created_at.isoformat(),
+            'modified_at': self.modified_at.isoformat(),
+        }
 
     def __repr__(self) -> str:
         return f"<User(id={self.id!r}, email={self.email!r}, " \
@@ -66,15 +70,14 @@ class User(BaseModel):
 class Admin(User):
     __tablename__ = "admins"
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-
-    def __repr__(self) -> str:
-        return f"Admin(id={self.id!r})"
-
+    
     __mapper_args__ = {
         'polymorphic_identity': UserType.ADMIN,
     }
 
-
+    def __repr__(self) -> str:
+        return f"Admin(id={self.id!r})"
+    
 class Seller(User):
     __tablename__ = "sellers"
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
@@ -82,18 +85,18 @@ class Seller(User):
     rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 2))
 
     listing: Mapped[Optional[List["Listing"]]] = relationship(back_populates="seller")
-
+    
     __mapper_args__ = {
         'polymorphic_identity': UserType.SELLER,
     }
     
     def to_dict(self):
-        """Extend the User to_dict method to include additional fields."""
-        data = super().to_dict()
-        data.update({
+        seller_dict = super().to_dict()
+        seller_dict.update({
             'company_name': self.company_name,
-            'rating': float(self.rating) if self.rating else None
+            'rating': float(self.rating) if self.rating is not None else None
         })
+        return seller_dict
 
     def __repr__(self) -> str:
         return f"<Seller(id={self.id!r}, email={self.email!r}, " \
@@ -136,7 +139,6 @@ class CustomerAddress(BaseModel):
                f"state='{self.state}, country='{self.country}', " \
                f"postal_code='{self.postal_code}')>"
 
-
 class ProductCategory(BaseModel):
     __tablename__ = "product_categories"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -147,14 +149,12 @@ class ProductCategory(BaseModel):
     def __repr__(self) -> str:
         return f"<ProductCategory(id={self.id!r}, title={self.title!r})>"
 
-
 ProductWordOccurrence = Table(
     "product_word_occurrences",
     BaseModel.metadata,
     Column("product_id", Integer, ForeignKey("products.id"), primary_key=True),
     Column("word_occurrence_id", Integer, ForeignKey("word_occurrences.id"), primary_key=True)
 )
-
 
 class Product(BaseModel):
     __tablename__ = "products"
@@ -172,7 +172,6 @@ class Product(BaseModel):
     def __repr__(self) -> str:
         return f"<Product(id={self.id!r}, name={self.name!r}, " \
                f"image_src={self.image_src}, category={self.category_id!r})>"
-
 
 class Listing(BaseModel):
     __tablename__ = "listings"
@@ -196,7 +195,6 @@ class Listing(BaseModel):
                f"product_state={self.product_state!r}, seller_id={self.seller_id!r}" \
                f"product_id={self.product_id!r})>"
 
-
 class ProductReview(BaseModel):
     __tablename__ = "reviews"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -217,7 +215,6 @@ class ProductReview(BaseModel):
                f"modified_at={self.modified_at!r}, customer_id={self.customer_id!r}, " \
                f"listing_id={self.listing_id!r})>"
 
-
 class CartEntry(BaseModel):
     __tablename__ = "cart_entries"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -232,7 +229,6 @@ class CartEntry(BaseModel):
         return f"<CartEntry(id={self.id!r}, amount={self.amount!r}, " \
                f"cart_id={self.cart_id!r}, listing_id={self.listing_id!r})>"
 
-
 class Cart(BaseModel):
     __tablename__ = "carts"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -243,7 +239,6 @@ class Cart(BaseModel):
 
     def __repr__(self) -> str:
         return f"<Cart(id={self.id!r}, customer_id={self.customer_id!r})>"
-
 
 class WishListEntry(BaseModel):
     __tablename__ = "wishlist_entries"
@@ -258,7 +253,6 @@ class WishListEntry(BaseModel):
         return f"WishListEntry(id={self.id!r}, product_id={self.product_id}, " \
                f"wishlist_id={self.wishlist_id!r})>"
 
-
 class WishList(BaseModel):
     __tablename__ = "wishlists"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -272,7 +266,6 @@ class WishList(BaseModel):
         return f"<WishList(id={self.id!r}, name={self.name!r}, " \
                f"customer_id={self.customer_id!r})>"
 
-
 class OrderEntry(BaseModel):
     __tablename__ = "order_entries"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -285,7 +278,6 @@ class OrderEntry(BaseModel):
     def __repr__(self) -> str:
         return f"<OrderEntry(id={self.id!r}, order_id={self.order_id!r}, " \
                f"listing_id={self.listing_id!r})>"
-
 
 class Order(BaseModel):
     __tablename__ = "orders"
@@ -307,7 +299,6 @@ class Order(BaseModel):
                f"address={self.address_street}, city={self.address_city}, " \
                f"state={self.address_state}, country={self.address_country}," \
                f"postal_code={self.address_postal_code})>"
-
 
 class DeleteRequest(BaseModel):
     __tablename__ = "delete_requests"
@@ -332,7 +323,6 @@ class WordOccurrence(BaseModel):
 
     def __repr__(self) -> str:
         return f"<Word(id={self.id!r}, word_id={self.word_id!r})>"
-
 
 class Word(BaseModel):
     __tablename__ = "words"
