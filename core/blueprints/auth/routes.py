@@ -1,9 +1,10 @@
 import datetime
 from flask import Blueprint, request
-from flask_jwt_extended import create_access_token
-from core import User, bcrypt, UserType
+from flask_jwt_extended import create_access_token, get_jwt, jwt_required
+from core import User, bcrypt, UserType, TokenBlocklist
 from ..utils import success_response
 from ..errors.handlers import bad_request, unauthorized
+from ...extensions import jwt_manager
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -50,3 +51,24 @@ def login():
     access_token = create_access_token(identity=email, additional_claims={'user_type': user.user_type.value})
     
     return success_response(message='login successful', data={'access_token': access_token})
+
+# callback function to check if a JWT exists in the database blocklist
+@jwt_manager.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
+    jti = jwt_payload["jti"]
+    token = TokenBlocklist.query.filter_by(jti=jti).scalar()
+    
+    return token is not None
+
+# endpoint for revoking the current user access token. saved the unique identifier
+# (jti) for the JWT into our database
+@auth_bp.route("/logout", methods=["DELETE"])
+@jwt_required()
+def revoke_token():
+    # todo add try-catch ?
+    TokenBlocklist.create(
+        jti=get_jwt()["jti"],
+        created_at=datetime.datetime.now()
+    )
+    
+    return success_response(message="jwt token revoked successfully")

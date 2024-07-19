@@ -1,3 +1,4 @@
+import inspect
 from .extensions import db
 
 class CRUDMixin(object):
@@ -35,6 +36,12 @@ class CRUDMixin(object):
 class BaseModel(CRUDMixin, db.Model):
     """Base model class the includes CRUD convenience methods."""
     __abstract__ = True
+    
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+        attrs = {attr: getattr(self, attr) for attr in inspect.getmembers(self.__class__, lambda a: isinstance(a, Column))}
+        attrs_str = ", ".join(f"{key}={value!r}" for key, value in attrs.items())
+        return f"<{cls_name}({attrs_str})>"
     
     def to_dict(self):
         """Convert model instance to a dictionary with keys ordered as declared in the model"""

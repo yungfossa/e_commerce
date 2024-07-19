@@ -28,6 +28,11 @@ class ReviewRate(enum.Enum):
     FOUR = 4
     FIVE = 5
     
+class TokenBlocklist(BaseModel):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    jti: Mapped[str] = mapped_column(String(36), index=True)
+    created_at: Mapped[DateTime] = mapped_column(DateTime)
+    
 class User(BaseModel):
     __tablename__ = 'users'
     
@@ -62,11 +67,6 @@ class User(BaseModel):
             'modified_at': self.modified_at.isoformat(),
         }
 
-    def __repr__(self) -> str:
-        return f"<User(id={self.id!r}, email={self.email!r}, " \
-               f"user_type={self.user_type!r}, created_at={self.created_at!r}, " \
-               f"modified_at={self.modified_at!r})>"
-
 class Admin(User):
     __tablename__ = "admins"
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
@@ -75,9 +75,6 @@ class Admin(User):
         'polymorphic_identity': UserType.ADMIN,
     }
 
-    def __repr__(self) -> str:
-        return f"Admin(id={self.id!r})"
-    
 class Seller(User):
     __tablename__ = "sellers"
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
@@ -97,12 +94,7 @@ class Seller(User):
             'rating': float(self.rating) if self.rating is not None else None
         })
         return seller_dict
-
-    def __repr__(self) -> str:
-        return f"<Seller(id={self.id!r}, email={self.email!r}, " \
-               f"company_name={self.company_name!r}, user_type={self.user_type!r}," \
-               f"created_at={self.created_at!r}, modified_at={self.modified_at!r})>"
-
+    
 class Customer(User):
     __tablename__ = "customers"
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
@@ -117,11 +109,6 @@ class Customer(User):
         'polymorphic_identity': UserType.CUSTOMER,
     }
 
-    def __repr__(self) -> str:
-        return f"<Customer(id={self.id!r}, email={self.email!r}, " \
-               f"user_type={self.user_type!r}, created_at={self.created_at!r}, " \
-               f"modified_at={self.modified_at!r})>"
-
 class CustomerAddress(BaseModel):
     __tablename__ = "customer_addresses"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -133,21 +120,12 @@ class CustomerAddress(BaseModel):
 
     customer: Mapped["Customer"] = relationship(back_populates="address")
 
-    def __repr__(self):
-        return f"<CustomerAddress(id={self.id}, customer_id={self.customer_id}, " \
-               f"street='{self.street}', city='{self.city}', " \
-               f"state='{self.state}, country='{self.country}', " \
-               f"postal_code='{self.postal_code}')>"
-
 class ProductCategory(BaseModel):
     __tablename__ = "product_categories"
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(32))
 
     product: Mapped[List["Product"]] = relationship(back_populates="category")
-
-    def __repr__(self) -> str:
-        return f"<ProductCategory(id={self.id!r}, title={self.title!r})>"
 
 ProductWordOccurrence = Table(
     "product_word_occurrences",
@@ -169,10 +147,6 @@ class Product(BaseModel):
     listing: Mapped[Optional[List["Listing"]]] = relationship(back_populates="product")
     words: Mapped[List["WordOccurrence"]] = relationship(secondary=ProductWordOccurrence, back_populates="products")
 
-    def __repr__(self) -> str:
-        return f"<Product(id={self.id!r}, name={self.name!r}, " \
-               f"image_src={self.image_src}, category={self.category_id!r})>"
-
 class Listing(BaseModel):
     __tablename__ = "listings"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -189,12 +163,6 @@ class Listing(BaseModel):
     review: Mapped[List["ProductReview"]] = relationship(back_populates="listing")
     order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="listing")
 
-    def __repr__(self) -> str:
-        return f"<Listing(id={self.id!r}, quantity={self.quantity!r}, " \
-               f"available={self.available}, price={self.price!r}, " \
-               f"product_state={self.product_state!r}, seller_id={self.seller_id!r}" \
-               f"product_id={self.product_id!r})>"
-
 class ProductReview(BaseModel):
     __tablename__ = "reviews"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -209,12 +177,6 @@ class ProductReview(BaseModel):
     customer: Mapped["Customer"] = relationship(back_populates="review")
     listing: Mapped["Listing"] = relationship(back_populates="review")
 
-    def __repr__(self) -> str:
-        return f"<Review(id={self.id!r}, title={self.title!r}, " \
-               f"rating={self.rating!r}, created_at={self.created_at!r}, " \
-               f"modified_at={self.modified_at!r}, customer_id={self.customer_id!r}, " \
-               f"listing_id={self.listing_id!r})>"
-
 class CartEntry(BaseModel):
     __tablename__ = "cart_entries"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -225,10 +187,6 @@ class CartEntry(BaseModel):
     cart: Mapped["Cart"] = relationship(back_populates="cart_entry")
     listing: Mapped["Listing"] = relationship(back_populates="cart_entry")
 
-    def __repr__(self) -> str:
-        return f"<CartEntry(id={self.id!r}, amount={self.amount!r}, " \
-               f"cart_id={self.cart_id!r}, listing_id={self.listing_id!r})>"
-
 class Cart(BaseModel):
     __tablename__ = "carts"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -236,9 +194,6 @@ class Cart(BaseModel):
 
     customer: Mapped["Customer"] = relationship(back_populates="cart")
     cart_entry: Mapped[List["CartEntry"]] = relationship(back_populates="cart")
-
-    def __repr__(self) -> str:
-        return f"<Cart(id={self.id!r}, customer_id={self.customer_id!r})>"
 
 class WishListEntry(BaseModel):
     __tablename__ = "wishlist_entries"
@@ -249,10 +204,6 @@ class WishListEntry(BaseModel):
     product: Mapped["Product"] = relationship(back_populates="wishlist_entry")
     wishlist: Mapped["WishList"] = relationship(back_populates="wishlist_entries")
 
-    def __repr__(self) -> str:
-        return f"WishListEntry(id={self.id!r}, product_id={self.product_id}, " \
-               f"wishlist_id={self.wishlist_id!r})>"
-
 class WishList(BaseModel):
     __tablename__ = "wishlists"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -261,11 +212,7 @@ class WishList(BaseModel):
 
     customer: Mapped["Customer"] = relationship(back_populates="wishlist")
     wishlist_entries: Mapped[List["WishListEntry"]] = relationship(back_populates="wishlist")
-
-    def __repr__(self) -> str:
-        return f"<WishList(id={self.id!r}, name={self.name!r}, " \
-               f"customer_id={self.customer_id!r})>"
-
+    
 class OrderEntry(BaseModel):
     __tablename__ = "order_entries"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -274,10 +221,6 @@ class OrderEntry(BaseModel):
 
     order: Mapped["Order"] = relationship(back_populates="order_entries")
     listing: Mapped["Listing"] = relationship(back_populates="order_entries")
-
-    def __repr__(self) -> str:
-        return f"<OrderEntry(id={self.id!r}, order_id={self.order_id!r}, " \
-               f"listing_id={self.listing_id!r})>"
 
 class Order(BaseModel):
     __tablename__ = "orders"
@@ -292,14 +235,7 @@ class Order(BaseModel):
     address_postal_code: Mapped[str] = mapped_column(String(32))
 
     order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="order")
-
-    def __repr__(self) -> str:
-        return f"<Order(id={self.id!r}, price={self.price!r}, " \
-               f"order_status={self.order_status!r}, purchased_at={self.purchased_at!r}, a" \
-               f"address={self.address_street}, city={self.address_city}, " \
-               f"state={self.address_state}, country={self.address_country}," \
-               f"postal_code={self.address_postal_code})>"
-
+    
 class DeleteRequest(BaseModel):
     __tablename__ = "delete_requests"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -309,11 +245,6 @@ class DeleteRequest(BaseModel):
 
     user: Mapped["User"] = relationship(back_populates="delete_request")
 
-    def __repr__(self) -> str:
-        return f"<DeleteRequest(id={self.id}, reason='{self.reason}', " \
-               f"requested_at={self.requested_at}, user_id={self.user_id})>"
-
-
 class WordOccurrence(BaseModel):
     __tablename__ = "word_occurrences"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -321,15 +252,9 @@ class WordOccurrence(BaseModel):
     word: Mapped["Word"] = relationship(back_populates="word_occ")
     products: Mapped[List["Product"]] = relationship(secondary=ProductWordOccurrence, back_populates="words")
 
-    def __repr__(self) -> str:
-        return f"<Word(id={self.id!r}, word_id={self.word_id!r})>"
-
 class Word(BaseModel):
     __tablename__ = "words"
     id: Mapped[int] = mapped_column(primary_key=True)
     word: Mapped[str] = mapped_column(String(32))
 
     word_occ: Mapped[List["WordOccurrence"]] = relationship(back_populates="word")
-
-    def __repr__(self) -> str:
-        return f"<Word(id={self.id!r}, word={self.word!r})>"
