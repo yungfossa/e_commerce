@@ -1,5 +1,10 @@
-import inspect
+import enum
+import typing
+from sqlalchemy import inspect
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm.exc import DetachedInstanceError
 from .extensions import db
+from datetime import datetime
 
 class CRUDMixin(object):
     """Mixin that adds convenience methods for CRUD (Create, Read, Update, Delete) database operations"""
@@ -37,12 +42,27 @@ class BaseModel(CRUDMixin, db.Model):
     """Base model class the includes CRUD convenience methods."""
     __abstract__ = True
     
-    def __repr__(self) -> str:
-        cls_name = self.__class__.__name__
-        attrs = {attr: getattr(self, attr) for attr in inspect.getmembers(self.__class__, lambda a: isinstance(a, Column))}
-        attrs_str = ", ".join(f"{key}={value!r}" for key, value in attrs.items())
-        return f"<{cls_name}({attrs_str})>"
-    
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    @classmethod
+    def row_to_dict(cls, row, fields=None):
+        def serialize_value(value):
+            if isinstance(value, datetime):
+                return value.isoformat()
+            elif isinstance(value, enum.Enum):
+                return value.value
+            return str(value)
+        
+        mapper = inspect(row.__class__)
+        columns = mapper.columns.keys()
+        
+        result = {}
+        for key in columns:
+            if (fields is None or key in fields):
+                value = getattr(row, key)
+                result[key] = serialize_value(value)
+        
+        return result
+
     def to_dict(self):
-        """Convert model instance to a dictionary with keys ordered as declared in the model"""
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return self.row_to_dict(self)

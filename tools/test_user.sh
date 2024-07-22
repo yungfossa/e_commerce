@@ -17,7 +17,7 @@ curl -XPOST 'http://localhost:5000/signup' \
   -H 'Content-Type: application/json' \
   --data '{"email":"email@example.com","password":"password","name":"foobar","surname":"foobar"}'
 
-# function to log in and access /me route
+# function to log in and access /profile route
 login_and_access_me() {
   local email=$1
   local password=$2
@@ -29,12 +29,12 @@ login_and_access_me() {
 
   echo "Access Token for $email: $access_token"
 
-  # access /me route
-  curl -XGET 'http://localhost:5000/me' \
+  # access /profile route
+  curl -XGET 'http://localhost:5000/profile' \
     -H "Authorization: Bearer $access_token" | jq
 }
 
-# login and access /me for each created user
+# login and access /profile for each created user
 login_and_access_me "1" "a"
 login_and_access_me "2" "a"
 login_and_access_me "3" "a"

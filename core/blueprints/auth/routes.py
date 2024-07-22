@@ -1,7 +1,7 @@
-import datetime
+from datetime import datetime
 from flask import Blueprint, request
 from flask_jwt_extended import create_access_token, get_jwt, jwt_required
-from core import User, bcrypt, UserType, TokenBlocklist
+from core import User, bcrypt, TokenBlocklist, UserType
 from ..utils import success_response
 from ..errors.handlers import bad_request, unauthorized
 from ...extensions import jwt_manager
@@ -15,7 +15,7 @@ def signup():
     name = data.get('name')
     surname = data.get('surname')
     password = data.get('password')
-    
+
     if not email or not password:
         return bad_request('missing email or password')
     
@@ -28,7 +28,7 @@ def signup():
         name=name,
         surname=surname,
         password=bcrypt.generate_password_hash(password, 10).decode('utf-8'),
-        birth_date=datetime.datetime.now(),
+        birth_date=datetime.now(),
         user_type=UserType.ADMIN
     )
 
@@ -56,7 +56,7 @@ def login():
 @jwt_manager.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
     jti = jwt_payload["jti"]
-    token = TokenBlocklist.query.filter_by(jti=jti).scalar()
+    token = TokenBlocklist.query.filter_by(jti=jti).first()
     
     return token is not None
 
@@ -68,7 +68,7 @@ def revoke_token():
     # todo add try-catch ?
     TokenBlocklist.create(
         jti=get_jwt()["jti"],
-        created_at=datetime.datetime.now()
+        created_at=datetime.now()
     )
     
     return success_response(message="jwt token revoked successfully")
