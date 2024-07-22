@@ -3,6 +3,11 @@ from .extensions import bcrypt, db, jwt_manager, login_manager, cors
 from .config import app_config
 from .models import *
 
+categories = [
+    'Tech',
+    'Food',
+]
+
 def create_app(config_name):
     app = Flask(__name__)
 
@@ -18,12 +23,20 @@ def create_app(config_name):
     with app.app_context():
         db.drop_all()
         db.create_all()
+
+        for c in categories:
+            ProductCategory.create(title=c)
     
     from .blueprints.errors import errors_bp
-    from .blueprints.auth import auth_bp
-    from .blueprints.user import user_bp
     app.register_blueprint(errors_bp)
+
+    from .blueprints.auth import auth_bp
     app.register_blueprint(auth_bp)
+
+    from .blueprints.user import user_bp
     app.register_blueprint(user_bp)
+
+    from .blueprints.products import products_bp
+    app.register_blueprint(products_bp)
 
     return app

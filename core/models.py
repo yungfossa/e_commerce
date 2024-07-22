@@ -99,7 +99,7 @@ class CustomerAddress(BaseModel):
 
 class ProductCategory(BaseModel):
     __tablename__ = "product_categories"
-    title: Mapped[str] = mapped_column(String(32))
+    title: Mapped[str] = mapped_column(String(32), unique=True)
     product: Mapped[List["Product"]] = relationship(back_populates="category")
 
 ProductWordOccurrence = Table(
