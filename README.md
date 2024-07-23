@@ -12,7 +12,18 @@ $ pre-commit install
 $ pre-commit run --all-files
 ```
 
+# Running the required services
+```shell
+$ docker-compose up
+```
+
 # Running the application
 ```shell
 $ flask run
+```
+
+# Installing the UI dependencies and running it
+```shell
+$ bun install
+$ burn run dev
 ```
