@@ -1,0 +1,9 @@
+categories:
+  - Tech
+  - Food
+  - Cloths
+
+admin:
+  - email: admin@shopsphere.com
+    name: admin
+    password: changeme
