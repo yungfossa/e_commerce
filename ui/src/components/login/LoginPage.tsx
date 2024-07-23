@@ -5,7 +5,7 @@ import Button from "../../shared/input/Button.tsx";
 import { useMemo, useState, useContext } from "react";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import AlertContext from "../../components/alert.tsx";
+import AlertContext from "../../components/Alert.tsx";
 import { useAppDispatch, useAppSelector } from "../../hooks.ts";
 import { useNavigate } from "react-router-dom";
 import { authenticate } from "../../store/user.ts";
@@ -36,8 +36,8 @@ const PanelWrapper = styled.div`
     display: flex;
     flex-direction: column;
 
-    display: flex; 
-    justify-content: center; 
+    display: flex;
+    justify-content: center;
     align-items: center;
 `;
 

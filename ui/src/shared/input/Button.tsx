@@ -14,7 +14,7 @@ const Wrapper = styled.button<{ width?: number }>`
     background-color: #f3f3f4;
     color: #0d0c22;
     transition: .3s ease;
-    
+
     :hover {
         cursor: pointer;
         background-color: #d6d6da;

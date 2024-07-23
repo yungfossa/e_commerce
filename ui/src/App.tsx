@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import { useAppDispatch, useAppSelector } from "./hooks.ts";
 import { authenticate } from "./store/user.ts";
-import AlertContext from "./components/alert.tsx";
+import AlertContext from "./components/Alert.tsx";
 import Header from "./shared/Header.tsx";
 
 const Wrapper = styled.table`

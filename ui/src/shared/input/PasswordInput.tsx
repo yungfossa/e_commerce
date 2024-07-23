@@ -27,7 +27,7 @@ const ConstraintWrapper = styled.li<{ valid: bool }>`
 
 function renderPasswordMatchedConstraints(isPasswordValid: bool, c: PasswordMatchedConstraints) {
 	if (isPasswordValid === undefined || isPasswordValid) {
-		return <></>;					
+		return <></>;
 	}
 
 	return (

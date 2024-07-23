@@ -13,9 +13,9 @@ const Wrapper = styled.div`
     margin: 0px;
 
     box-sizing: border-box;
-    
-    display: flex; 
-    justify-content: space-between; 
+
+    display: flex;
+    justify-content: space-between;
     align-items: center;
 `;
 

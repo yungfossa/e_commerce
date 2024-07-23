@@ -7,7 +7,7 @@ import { Provider } from "react-redux";
 import store from "./store/store.ts";
 import LoginPage from "./components/login/LoginPage.tsx";
 import RegisterPage from "./components/register/RegisterPage.tsx";
-import { AlertProvider } from "./components/alert.tsx";
+import { AlertProvider } from "./components/Alert.tsx";
 
 const router = createBrowserRouter([
 	{
