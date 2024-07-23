@@ -21,7 +21,7 @@ curl -XPOST 'http://localhost:5000/signup' \
 login_and_access_me() {
   local email=$1
   local password=$2
-  
+
   # login and get access token
   access_token=$(curl -s -XPOST 'http://localhost:5000/login' \
     -H 'Content-Type: application/json' \

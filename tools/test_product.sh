@@ -41,9 +41,9 @@ list_product () {
 }
 
 
-create_category "Tech"
-create_category "Food"
-delete_category "Food"
+create_category "Misc"
+create_category "Tool"
+delete_category "Tool"
 list_category
 
 # create_product "Mouse" "Logitech Mouse" "google.com" "Tech"

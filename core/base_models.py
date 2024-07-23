@@ -1,10 +1,9 @@
 import enum
-import typing
 from sqlalchemy import inspect
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.orm.exc import DetachedInstanceError
 from .extensions import db
 from datetime import datetime
+
 
 class CRUDMixin(object):
     """Mixin that adds convenience methods for CRUD (Create, Read, Update, Delete) database operations"""
@@ -40,8 +39,9 @@ class CRUDMixin(object):
 
 class BaseModel(CRUDMixin, db.Model):
     """Base model class the includes CRUD convenience methods."""
+
     __abstract__ = True
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
 
     @classmethod
@@ -52,16 +52,16 @@ class BaseModel(CRUDMixin, db.Model):
             elif isinstance(value, enum.Enum):
                 return value.value
             return str(value)
-        
+
         mapper = inspect(row.__class__)
         columns = mapper.columns.keys()
-        
+
         result = {}
         for key in columns:
-            if (fields is None or key in fields):
+            if fields is None or key in fields:
                 value = getattr(row, key)
                 result[key] = serialize_value(value)
-        
+
         return result
 
     def to_dict(self):

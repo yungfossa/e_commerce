@@ -5,21 +5,25 @@ from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
 from .errors.handlers import unauthorized
 from core import UserType
 
+
 def required_user_type(types: List[UserType]):
     def decorator(func):
         @wraps(func)
         @jwt_required()
         def wrapper(*args, **kwargs):
             verify_jwt_in_request()
-            current_user_type= get_jwt().get('user_type')
+            current_user_type = get_jwt().get("user_type")
             if current_user_type not in types:
-                return unauthorized('user not authorized')
+                return unauthorized("user not authorized")
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
+
 def success_response(message, data=None, status_code=200):
-    response = {'message': message}
+    response = {"message": message}
     if data:
-        response['data'] = data
+        response["data"] = data
     return jsonify(response), status_code

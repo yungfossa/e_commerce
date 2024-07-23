@@ -5,6 +5,4 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = create_app(os.getenv('FLASK_ENV'))
-
-
+app = create_app(os.getenv("FLASK_ENV"))
