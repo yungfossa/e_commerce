@@ -17,8 +17,8 @@ curl -XPOST 'http://localhost:5000/signup' \
   -H 'Content-Type: application/json' \
   --data '{"email":"email@example.com","password":"password","name":"foobar","surname":"foobar"}'
 
-# function to log in and access /profile route
-login_and_access_me() {
+# function to log in, access /profile route, and log out
+login_access_and_logout() {
   local email=$1
   local password=$2
 
@@ -30,16 +30,24 @@ login_and_access_me() {
   echo "Access Token for $email: $access_token"
 
   # access /profile route
+  echo "Accessing profile for $email:"
   curl -XGET 'http://localhost:5000/profile' \
     -H "Authorization: Bearer $access_token" | jq
+
+  # access /cart route
+  echo "Accessing cart for $email:"
+  curl -XGET 'http://localhost:5000/cart' \
+    -H "Authorization: Bearer $access_token" | jq
+
+  # logout
+  logout_response=$(curl -s -XDELETE 'http://localhost:5000/logout' \
+    -H "Authorization: Bearer $access_token")
+
+  echo "Logout response for $email: $logout_response"
 }
 
-# login and access /profile for each created user
-login_and_access_me "1" "a"
-login_and_access_me "2" "a"
-login_and_access_me "3" "a"
-login_and_access_me "4" "a"
-
-# check users
-curl -XGET 'http://localhost:5000/users' \
-  -H "Authorization: Bearer $access_token" | jq
+# login, access /profile, and logout for each created user
+login_access_and_logout "1" "a"
+login_access_and_logout "2" "a"
+login_access_and_logout "3" "a"
+login_access_and_logout "4" "a"

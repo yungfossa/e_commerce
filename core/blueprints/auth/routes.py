@@ -1,20 +1,29 @@
-from datetime import datetime
+from core import bcrypt
+from datetime import datetime, timezone
 from flask import Blueprint, request
-from flask_jwt_extended import create_access_token, get_jwt, jwt_required
-from core import User, bcrypt, TokenBlocklist, UserType
-from ..utils import success_response
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    jwt_required,
+    get_jwt_identity,
+)
+from ..commons import success_response
 from ..errors.handlers import bad_request, unauthorized
+from ...models import TokenBlocklist, User, Cart, Customer
 from ...extensions import jwt_manager
 
 auth_bp = Blueprint("auth", __name__)
 
 
+# TODO need to add birth_date field in the input
+
+
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
     data = request.get_json()
-    email = data.get("email")
-    name = data.get("name")
-    surname = data.get("surname")
+    email = str(data.get("email")).lower()
+    name = str(data.get("name")).lower()
+    surname = str(data.get("surname")).lower()
     password = data.get("password")
 
     if not email or not password:
@@ -23,23 +32,24 @@ def signup():
     if User.query.filter_by(email=email).first():
         return bad_request("email already exists")
 
-    # todo add try-catch ?
-    User.create(
+    customer = Customer.create(
         email=email,
         name=name,
         surname=surname,
         password=bcrypt.generate_password_hash(password, 10).decode("utf-8"),
-        birth_date=datetime.now(),
-        user_type=UserType.CUSTOMER,
     )
 
-    return success_response(message="user created successfully", status_code=201)
+    Cart.create(customer_id=customer.id)
+
+    return success_response(
+        message="user and his cart created successfully", status_code=201
+    )
 
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
-    email = data.get("email")
+    email = str(data.get("email")).lower()
     password = data.get("password")
 
     if not email or not password:
@@ -64,7 +74,6 @@ def login():
 def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
     jti = jwt_payload["jti"]
     token = TokenBlocklist.query.filter_by(jti=jti).first()
-
     return token is not None
 
 
@@ -73,7 +82,17 @@ def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
 @auth_bp.route("/logout", methods=["DELETE"])
 @jwt_required()
 def revoke_token():
-    # todo add try-catch ?
-    TokenBlocklist.create(jti=get_jwt()["jti"], created_at=datetime.now())
+    jwt_payload = get_jwt()
+    jti = jwt_payload["jti"]
+    exp = datetime.fromtimestamp(jwt_payload["exp"], timezone.utc)
+    now = datetime.now(timezone.utc)
+
+    current_user_id = (
+        User.query.with_entities(User.id).filter_by(email=get_jwt_identity()).scalar()
+    )
+
+    TokenBlocklist.create(
+        jti=jti, created_at=now, expired_at=exp, user_id=current_user_id
+    )
 
     return success_response(message="jwt token revoked successfully")

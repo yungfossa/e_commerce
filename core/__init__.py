@@ -1,8 +1,8 @@
 from flask import Flask
-from .extensions import bcrypt, db, jwt_manager, login_manager, cors
+from .extensions import bcrypt, db, jwt_manager, login_manager, cors, scheduler
 from .config import app_config
 from datetime import datetime
-from .models import ProductCategory, User, UserType
+from .models import ProductCategory, Admin, UserType as UserType
 import yaml
 
 with open("data/init.yaml") as f:
@@ -23,6 +23,13 @@ def create_app(config_name):
     jwt_manager.init_app(app)
     db.init_app(app)
 
+    # background jobs scheduler
+    scheduler.init_app(app)
+
+    from .scheduler_jobs import cleanup_tokens_blocklist as cleanup_tokens_blocklist
+
+    scheduler.start()
+
     with app.app_context():
         db.drop_all()
         db.create_all()
@@ -31,7 +38,7 @@ def create_app(config_name):
             ProductCategory.create(title=c)
 
         for a in admin:
-            User.create(
+            Admin.create(
                 email=a["email"],
                 name=a["name"],
                 surname=a["name"],
@@ -39,7 +46,6 @@ def create_app(config_name):
                     "utf-8"
                 ),
                 birth_date=datetime.now(),
-                user_type=UserType.ADMIN,
                 is_active=True,
             )
 
@@ -55,8 +61,16 @@ def create_app(config_name):
 
     app.register_blueprint(user_bp)
 
-    from .blueprints.products import products_bp
+    from .blueprints.user.customer import customer_bp
 
-    app.register_blueprint(products_bp)
+    app.register_blueprint(customer_bp)
+
+    from .blueprints.user.seller import seller_bp
+
+    app.register_blueprint(seller_bp)
+
+    from .blueprints.admin import admin_bp
+
+    app.register_blueprint(admin_bp)
 
     return app

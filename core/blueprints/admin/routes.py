@@ -1,16 +1,13 @@
-from flask import Blueprint, request
-from core import Product, ProductCategory
-from core import UserType
-from ..utils import success_response
-from ..errors.handlers import bad_request
 from sqlalchemy import exc
-from ..utils import required_user_type
+from flask import Blueprint, request, jsonify
+from ..errors.handlers import bad_request
+from ..commons import required_user_type, success_response
+from ...models import Product, ProductCategory, User
+
+admin_bp = Blueprint("admin", __name__)
 
 
-products_bp = Blueprint("products", __name__)
-
-
-@products_bp.route("/products", methods=["POST"])
+@admin_bp.route("/admin", methods=["POST"])
 def products():
     data = request.get_json()
     limit = data.get("limit")
@@ -21,7 +18,8 @@ def products():
     return success_response(message="ok", data=[p.to_dict() for p in ps])
 
 
-@products_bp.route("/product", methods=["PUT"])
+@admin_bp.route("/product", methods=["PUT"])
+@required_user_type(["admin"])
 def create_product():
     print(request.data)
     data = request.get_json()
@@ -42,16 +40,17 @@ def create_product():
 
 
 # TODO require admin access, first implement integration test authentication in bash
-@products_bp.route("/admin/category", methods=["GET"])
-@required_user_type([UserType.ADMIN])
+@admin_bp.route("/admin/category", methods=["GET"])
+@required_user_type(["admin"])
 def get_categories():
     cs = ProductCategory.query.all()
+
     return success_response(message="ok", data=[c.to_dict() for c in cs])
 
 
 # TODO require admin access, first implement integration test authentication in bash
-@products_bp.route("/admin/category", methods=["PUT"])
-@required_user_type([UserType.ADMIN])
+@admin_bp.route("/admin/category", methods=["PUT"])
+@required_user_type(["admin"])
 # @required_permission([Permissions.CAN_CREATE_CATEGORY])
 def create_category():
     data = request.get_json()
@@ -66,13 +65,21 @@ def create_category():
 
 
 # TODO require admin access, first implement integration test authentication in bash
-# TODO figure out what to do with products using this category, should they be assigned to generic one?
-@products_bp.route("/admin/category", methods=["DELETE"])
-@required_user_type([UserType.ADMIN])
+# TODO figure out what to do with admin using this category, should they be assigned to generic one?
+@admin_bp.route("/admin/category", methods=["DELETE"])
+@required_user_type(["admin"])
 def delete_category():
     data = request.get_json()
     title = str(data.get("title")).lower()
 
     _pc = ProductCategory.query.filter_by(title=title).first().delete()
 
-    return success_response(message="ok")
+    return success_response(message=f"{title} category removed successfully")
+
+
+@admin_bp.route("/admin/users", methods=["GET"])
+@required_user_type(["admin"])
+def users():
+    us = User.query.all()
+
+    return jsonify(users=[u.to_dict(rules=("-password",)) for u in us]), 200

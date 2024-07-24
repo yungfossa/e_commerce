@@ -1,26 +1,42 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint
 from flask_jwt_extended import get_jwt_identity
-from ...models import User
 from ..errors.handlers import not_found
-from ..utils import required_user_type, success_response
+from ..commons import required_user_type, success_response, get_current_user
 
 user_bp = Blueprint("user", __name__)
 
 
 @user_bp.route("/profile", methods=["GET"])
-@required_user_type(["seller", "customer", "admin"])
-def get_current_user_profile():
-    current_user_email = get_jwt_identity()
-    user = User.query.filter_by(email=current_user_email).first()
+@required_user_type(["seller", "customer"])
+def profile():
+    user_email = get_jwt_identity()
+    user = get_current_user(user_email)
 
     if not user:
         return not_found("user not found")
 
-    return success_response(message="profile", data=user.to_dict())
+    if user.user_type.value == "seller":
+        return success_response(
+            message="seller profile",
+            data=user.to_dict(
+                only=(
+                    "email",
+                    "name",
+                    "surname",
+                    "company",
+                    "rating",
+                )
+            ),
+        )
 
-
-@user_bp.route("/users", methods=["GET"])
-@required_user_type(["admin"])
-def users():
-    us = User.query.all()
-    return jsonify(users=[u.to_dict() for u in us]), 200
+    return success_response(
+        message="customer profile",
+        data=user.to_dict(
+            only=(
+                "email",
+                "name",
+                "surname",
+                "phone_number",
+            )
+        ),
+    )
