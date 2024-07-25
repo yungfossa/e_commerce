@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_jwt_extended import get_jwt_identity
 from ..errors.handlers import not_found
-from ..commons import required_user_type, success_response, get_current_user
+from ..commons import required_user_type, success_response, get_user
 
 user_bp = Blueprint("user", __name__)
 
@@ -10,7 +10,7 @@ user_bp = Blueprint("user", __name__)
 @required_user_type(["seller", "customer"])
 def profile():
     user_email = get_jwt_identity()
-    user = get_current_user(user_email)
+    user = get_user(user_email)
 
     if not user:
         return not_found("user not found")
