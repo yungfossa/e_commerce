@@ -24,24 +24,11 @@ def required_user_type(types: List[str]):
     return decorator
 
 
-def get_user(email: str) -> User:
+def get_current_user(email: str) -> User:
     try:
         return User.query.filter_by(email=email).first()
     except NoResultFound:
         not_found(f"user with email {email} not found")
-
-
-def json_action_response(action, message, **kwargs):
-    """
-    create a JSON response indicating an action that should be taken by the client.
-
-    :param action: The action that should be taken (e.g., 'remove', 'update')
-    :param message: A message describing the action
-    :param kwargs: Additional key-value pairs to include in the response
-    :return: A JSON response with a 200 status code
-    """
-    response_data = {"action": action, "message": message, **kwargs}
-    return jsonify(response_data), 200
 
 
 def success_response(message, data=None, status_code=200):

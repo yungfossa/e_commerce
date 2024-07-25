@@ -15,7 +15,7 @@ def products():
 
     ps = Product.query.filter_by().limit(limit).offset(offset)
 
-    return success_response(message="products", data=[p.to_dict() for p in ps])
+    return success_response(message="ok", data=[p.to_dict() for p in ps])
 
 
 @admin_bp.route("/product", methods=["PUT"])
@@ -36,7 +36,7 @@ def create_product():
         name=name, description=description, image_src=image_src, category_id=c.id
     )
 
-    return success_response(message="product created successfully", data=p.to_dict())
+    return success_response(message="ok", data=p.to_dict())
 
 
 # TODO require admin access, first implement integration test authentication in bash
@@ -61,7 +61,7 @@ def create_category():
     except exc.IntegrityError:
         return bad_request(error="category already exists")
 
-    return success_response(message="product category created successfully")
+    return success_response(message="ok")
 
 
 # TODO require admin access, first implement integration test authentication in bash
