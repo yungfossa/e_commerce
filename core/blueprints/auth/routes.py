@@ -7,24 +7,17 @@ from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity,
 )
-from ..commons import success_response
-from ..errors.handlers import bad_request, unauthorized
+from ..commons import (
+    success_response,
+    valide_email,
+    send_confirmation_email,
+    confirm_token,
+)
+from ..errors.handlers import bad_request, unauthorized, not_found
 from ...models import TokenBlocklist, User, Cart, Customer
 from ...extensions import jwt_manager
-import re
 
 auth_bp = Blueprint("auth", __name__)
-
-# RFC 5322 compliant regexp used for email validation
-email_pattern = re.compile(
-    "(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")"
-    "@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*"
-    "[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)])"
-)
-
-
-def valide_email(email: str) -> bool:
-    return True if email_pattern.match(email) else False
 
 
 @auth_bp.route("/signup", methods=["POST"])
@@ -53,9 +46,32 @@ def signup():
 
     Cart.create(customer_id=customer.id)
 
+    send_confirmation_email(email)
+
     return success_response(
-        message="user and his cart created successfully", status_code=201
+        message="user created successfully. "
+        "please check your email to confirm your account.",
+        status_code=201,
     )
+
+
+@auth_bp.route("/verify/<token>")
+def confirm_email(token):
+    email = confirm_token(token)
+    if not email:
+        return bad_request("the confirmation link is invalid or has expired")
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return not_found("user not found")
+
+    if user.is_verified:
+        return success_response(message="account already confirmed")
+    else:
+        user.update(is_verified=True, verified_on=datetime.now())
+
+    return success_response("you have confirmed your account")
 
 
 @auth_bp.route("/login", methods=["POST"])
@@ -74,6 +90,9 @@ def login():
 
     if not user or not bcrypt.check_password_hash(user.password, password):
         return unauthorized("invalid email or password")
+
+    if not user.is_verified:
+        return unauthorized("please confirm your email before logging in")
 
     access_token = create_access_token(
         identity=user.id,

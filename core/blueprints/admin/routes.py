@@ -22,7 +22,7 @@ def products():
 @required_user_type(["admin"])
 def create_product():
     data = request.get_json()
-    name = data.get("name")
+    name = str(data.get("name")).title()
     description = data.get("description")
     image_src = data.get("image_src")
     category = str(data.get("category")).lower()

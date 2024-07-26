@@ -94,8 +94,7 @@ def upsert_cart_entry():
         )
 
     if cart_entry:
-        cart_entry.amount = amount
-        CartEntry.update(cart_entry)
+        CartEntry.update(amount=amount)
         return success_response("cart entry amount updated successfully")
 
     CartEntry.create(amount=amount, cart_id=cart_id, listing_id=listing_id)

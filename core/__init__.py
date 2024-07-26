@@ -1,5 +1,5 @@
 from flask import Flask
-from .extensions import bcrypt, db, jwt_manager, cors, scheduler, mail_manager
+from .extensions import bcrypt, db, jwt_manager, cors, scheduler, email_manager
 from .config import app_config
 from datetime import datetime
 from .models import ProductCategory, Admin, UserType as UserType
@@ -20,7 +20,7 @@ def create_app(config_name):
     cors.init_app(app)
     bcrypt.init_app(app)
     jwt_manager.init_app(app)
-    mail_manager.init_app(app)
+    email_manager.init_app(app)
     db.init_app(app)
     scheduler.init_app(app)
 

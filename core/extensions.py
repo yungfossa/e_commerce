@@ -8,6 +8,6 @@ from flask_mail import Mail
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 scheduler = APScheduler()
-mail_manager = Mail()
+email_manager = Mail()
 jwt_manager = JWTManager()
 cors = CORS()

@@ -1,8 +1,20 @@
 from functools import wraps
 from typing import List
-from flask import jsonify
+from flask import jsonify, current_app, url_for
 from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
 from .errors.handlers import unauthorized
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from flask_mail import Message
+import re
+
+from .. import email_manager
+
+# RFC 5322 compliant regexp used for email validation
+email_pattern = re.compile(
+    "(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")"
+    "@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*"
+    "[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)])"
+)
 
 
 def required_user_type(types: List[str]):
@@ -21,8 +33,37 @@ def required_user_type(types: List[str]):
     return decorator
 
 
-def success_response(message, data=None, status_code=200):
+def success_response(message: str, data=None, status_code=200):
     response = {"message": message}
     if data:
         response["data"] = data
     return jsonify(response), status_code
+
+
+def valide_email(email: str) -> bool:
+    return True if email_pattern.match(email) else False
+
+
+def generate_confirmation_token(email: str):
+    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    return serializer.dumps(email, salt=current_app.config["MAIL_CONFIRM_SALT"])
+
+
+def confirm_token(token, expiration=3600):
+    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    try:
+        email = serializer.loads(
+            token, salt=current_app.config["MAIL_CONFIRM_SALT"], max_age=expiration
+        )
+    except BadSignature or SignatureExpired:  # TODO check if it is correct
+        return False
+    return email
+
+
+def send_confirmation_email(user_email: str):
+    token = generate_confirmation_token(user_email)
+    confirm_url = url_for("auth.confirm_email", token=token, _external=True)
+
+    msg = Message("Confirm Your Email", recipients=[user_email])
+    msg.body = f"Please click the link to confirm your email: {confirm_url}"
+    email_manager.send(msg)

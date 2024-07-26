@@ -74,7 +74,7 @@ class User(BaseModel):
     birth_date: Mapped[Optional[datetime]] = mapped_column(Date)
     phone_number: Mapped[Optional[str]] = mapped_column(String(32))
     user_type: Mapped[str] = mapped_column(Enum(UserType))
-    is_verified: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     modified_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), onupdate=func.now()
