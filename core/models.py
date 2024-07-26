@@ -74,13 +74,12 @@ class User(BaseModel):
     birth_date: Mapped[Optional[datetime]] = mapped_column(Date)
     phone_number: Mapped[Optional[str]] = mapped_column(String(32))
     user_type: Mapped[str] = mapped_column(Enum(UserType))
+    is_verified: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     modified_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), onupdate=func.now()
     )
-    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # TODO solve the infinite recursion when i call the to_dict method due to delete_request relationship
+    verified_on: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     delete_request: Mapped[Optional["DeleteRequest"]] = relationship(
         back_populates="user"
@@ -218,7 +217,7 @@ class CartEntry(BaseModel):
     __tablename__ = "cart_entries"
     id: Mapped[int] = mapped_column(primary_key=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    cart_id: Mapped[int] = mapped_column(ForeignKey("carts.id"))
+    cart_id: Mapped[int] = mapped_column(ForeignKey("carts.customer_id"))
     listing_id: Mapped[int] = mapped_column(ForeignKey("listings.id"))
 
     cart: Mapped["Cart"] = relationship(back_populates="cart_entry")
@@ -227,8 +226,9 @@ class CartEntry(BaseModel):
 
 class Cart(BaseModel):
     __tablename__ = "carts"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
+    customer_id: Mapped[int] = mapped_column(
+        ForeignKey("customers.id"), primary_key=True
+    )
 
     customer: Mapped["Customer"] = relationship(back_populates="cart")
     cart_entry: Mapped[Optional[List["CartEntry"]]] = relationship(

@@ -1,5 +1,5 @@
 from flask import Flask
-from .extensions import bcrypt, db, jwt_manager, login_manager, cors, scheduler
+from .extensions import bcrypt, db, jwt_manager, cors, scheduler, mail_manager
 from .config import app_config
 from datetime import datetime
 from .models import ProductCategory, Admin, UserType as UserType
@@ -19,11 +19,9 @@ def create_app(config_name):
 
     cors.init_app(app)
     bcrypt.init_app(app)
-    login_manager.init_app(app)
     jwt_manager.init_app(app)
+    mail_manager.init_app(app)
     db.init_app(app)
-
-    # background jobs scheduler
     scheduler.init_app(app)
 
     from .scheduler_jobs import cleanup_tokens_blocklist as cleanup_tokens_blocklist
@@ -46,7 +44,8 @@ def create_app(config_name):
                     "utf-8"
                 ),
                 birth_date=datetime.now(),
-                is_active=True,
+                is_verified=True,
+                verified_on=datetime.now(),
             )
 
     from .blueprints.errors import errors_bp

@@ -7,7 +7,7 @@ from ...models import Product, ProductCategory, User
 admin_bp = Blueprint("admin", __name__)
 
 
-@admin_bp.route("/admin", methods=["POST"])
+@admin_bp.route("/admin/products", methods=["POST"])
 def products():
     data = request.get_json()
     limit = data.get("limit")
@@ -18,10 +18,9 @@ def products():
     return success_response(message="products", data=[p.to_dict() for p in ps])
 
 
-@admin_bp.route("/product", methods=["PUT"])
+@admin_bp.route("/admin/products", methods=["PUT"])
 @required_user_type(["admin"])
 def create_product():
-    print(request.data)
     data = request.get_json()
     name = data.get("name")
     description = data.get("description")

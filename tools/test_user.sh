@@ -3,19 +3,8 @@
 create_user() {
   curl -XPOST 'http://localhost:5000/signup' \
     -H 'Content-Type: application/json' \
-    --data '{"email":"'$1'","password":"'$2'","name":"foobar","surname":"foobar"}'
+    --data '{"email":"'"$1"'","password":"'"$2"'","name":"foobar","surname":"foobar"}'
 }
-
-# create sample users
-create_user "1" "a"
-create_user "2" "a"
-create_user "3" "a"
-create_user "4" "a"
-
-# create a specific user
-curl -XPOST 'http://localhost:5000/signup' \
-  -H 'Content-Type: application/json' \
-  --data '{"email":"email@example.com","password":"password","name":"foobar","surname":"foobar"}'
 
 # function to log in, access /profile route, and log out
 login_access_and_logout() {
@@ -25,7 +14,7 @@ login_access_and_logout() {
   # login and get access token
   access_token=$(curl -s -XPOST 'http://localhost:5000/login' \
     -H 'Content-Type: application/json' \
-    --data '{"email":"'$email'","password":"'$password'"}' | jq -r '.data.access_token')
+    --data '{"email":"'"$email"'","password":"'"$password"'"}' | jq -r '.data.access_token')
 
   echo "Access Token for $email: $access_token"
 
@@ -46,8 +35,8 @@ login_access_and_logout() {
   echo "Logout response for $email: $logout_response"
 }
 
+# create sample users
+create_user "email@example.com" "password"
+
 # login, access /profile, and logout for each created user
-login_access_and_logout "1" "a"
-login_access_and_logout "2" "a"
-login_access_and_logout "3" "a"
-login_access_and_logout "4" "a"
+login_access_and_logout "email@example.com" "password"
