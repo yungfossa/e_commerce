@@ -250,11 +250,12 @@ class WishList(BaseModel):
     __tablename__ = "wishlists"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(32))
+    slug: Mapped[str] = mapped_column(String(150), unique=True)
     costumer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
 
     customer: Mapped["Customer"] = relationship(back_populates="wishlist")
-    wishlist_entries: Mapped[List["WishListEntry"]] = relationship(
-        back_populates="wishlist"
+    wishlist_entries: Mapped[Optional[List["WishListEntry"]]] = relationship(
+        back_populates="wishlist", cascade="all, delete-orphan"
     )
 
 

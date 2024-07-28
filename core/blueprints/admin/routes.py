@@ -1,7 +1,7 @@
 from sqlalchemy import exc
 from flask import Blueprint, request, jsonify
 from ..errors.handlers import bad_request
-from ..commons import required_user_type, success_response
+from ..utils import required_user_type, success_response
 from ...models import Product, ProductCategory, User
 
 admin_bp = Blueprint("admin", __name__)

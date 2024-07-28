@@ -7,14 +7,15 @@ from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity,
 )
-from ..commons import (
+from ..utils import (
     success_response,
     valide_email,
     send_confirmation_email,
     confirm_token,
+    generate_secure_slug,
 )
 from ..errors.handlers import bad_request, unauthorized, not_found
-from ...models import TokenBlocklist, User, Cart, Customer
+from ...models import TokenBlocklist, User, Cart, Customer, WishList
 from ...extensions import jwt_manager
 
 auth_bp = Blueprint("auth", __name__)
@@ -45,6 +46,14 @@ def signup():
     )
 
     Cart.create(customer_id=customer.id)
+
+    default_wishlist_name = "Favorites"
+
+    WishList.create(
+        name=default_wishlist_name,
+        customer_id=customer.id,
+        slug=generate_secure_slug(default_wishlist_name),
+    )
 
     send_confirmation_email(email)
 

@@ -1,3 +1,5 @@
+import shortuuid
+from slugify import slugify
 from functools import wraps
 from typing import List
 from flask import jsonify, current_app, url_for, render_template
@@ -72,3 +74,11 @@ def send_confirmation_email(user_email: str):
     )
     email_manager.send(msg)
     return success_response(f"verification email sent successfully to {user_email}")
+
+
+def generate_secure_slug(name, max_length=50):
+    # create a base slug from the name, limiting its length
+    base_slug = slugify(name)[: max_length - 9]  # -9 to account for '-' and 8 char uuid
+    # append a short unique identifier
+    unique_id = shortuuid.uuid()[:8]
+    return f"{base_slug}-{unique_id}"

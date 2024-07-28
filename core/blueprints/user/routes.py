@@ -1,5 +1,5 @@
 from flask import Blueprint
-from ..commons import required_user_type, success_response
+from ..utils import required_user_type, success_response
 from ...models import User
 from flask_jwt_extended import get_jwt_identity
 
