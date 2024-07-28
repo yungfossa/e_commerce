@@ -251,7 +251,7 @@ class WishList(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(32))
     slug: Mapped[str] = mapped_column(String(150), unique=True)
-    costumer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
 
     customer: Mapped["Customer"] = relationship(back_populates="wishlist")
     wishlist_entries: Mapped[Optional[List["WishListEntry"]]] = relationship(

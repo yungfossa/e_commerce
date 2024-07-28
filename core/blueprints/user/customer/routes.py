@@ -31,7 +31,7 @@ def cart_summary(entries):
             "price_per_unit": entry.price_per_unit,
             "cart_entry_amount": entry.amount,
             "total_price_cart_entry": entry.total_price_cart_entry,
-            # TODO add the company seller name
+            "company_name ": entry.company_name,
         }
 
     items = [cart_entry_to_dict(entry) for entry in entries]
@@ -74,6 +74,7 @@ def cart():
         db.session.query(MVProductCategory, CartEntry, Listing)
         .join(CartEntry, CartEntry.listing_id == Listing.id)
         .join(MVProductCategory, Listing.product_id == MVProductCategory.product_id)
+        .join(Seller, Listing.seller_id == Seller.id)
         .filter(CartEntry.cart_id == cart_id)
         .with_entities(
             MVProductCategory.product_name,
@@ -83,6 +84,7 @@ def cart():
             Listing.price.label("price_per_unit"),
             (Listing.price * CartEntry.amount).label("total_price_cart_entry"),
             CartEntry.amount,
+            Seller.company_name,
         )
         .all()
     )
@@ -131,9 +133,9 @@ def upsert_cart_entry():
         CartEntry.update(amount=amount)
         return success_response("cart entry amount updated successfully")
 
-    CartEntry.create(amount=amount, cart_id=cart_id, listing_id=listing_id)
+    c = CartEntry.create(amount=amount, cart_id=cart_id, listing_id=listing_id)
 
-    return success_response("product added to cart successfully")
+    return success_response("product added to cart successfully", data=c.to_dict())
 
 
 @customer_bp.route("/cart", methods=["DELETE"])
@@ -166,7 +168,13 @@ def clear_cart():
     return success_response(message="cart cleared successfully")
 
 
-# TODO to complete
+# TODO missing add and remove wishlist entry
+@customer_bp.route("/wishlists/<string:slug>", methods=["POST"])
+@required_user_type(["customer"])
+def add_wishlist_entry(slug):
+    return success_response("wishlist entry added successfully")
+
+
 @customer_bp.route("/wishlists/<string:slug>", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist_entry(slug):
@@ -268,6 +276,7 @@ def remove_wishlist():
         return bad_request("wishlist slug is missing")
 
     customer_id = get_jwt_identity()
+
     wishlist = WishList.query.filter_by(
         slug=wishlist_slug, customer_id=customer_id
     ).first()

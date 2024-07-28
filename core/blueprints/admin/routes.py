@@ -28,6 +28,7 @@ def create_product():
     category = str(data.get("category")).lower()
 
     c = ProductCategory.query.filter_by(title=category).first()
+
     if not c:
         return bad_request("category not found")
 
@@ -44,7 +45,9 @@ def create_product():
 def get_categories():
     cs = ProductCategory.query.all()
 
-    return success_response(message="ok", data=[c.to_dict() for c in cs])
+    return success_response(
+        message="product categories", data=[c.to_dict() for c in cs]
+    )
 
 
 # TODO require admin access, first implement integration test authentication in bash
