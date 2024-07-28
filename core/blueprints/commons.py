@@ -1,6 +1,6 @@
 from functools import wraps
 from typing import List
-from flask import jsonify, current_app, url_for
+from flask import jsonify, current_app, url_for, render_template
 from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
 from .errors.handlers import unauthorized
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -49,7 +49,7 @@ def generate_confirmation_token(email: str):
     return serializer.dumps(email, salt=current_app.config["MAIL_CONFIRM_SALT"])
 
 
-def confirm_token(token, expiration=3600):
+def confirm_token(token, expiration=86400):
     serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
     try:
         email = serializer.loads(
@@ -64,6 +64,11 @@ def send_confirmation_email(user_email: str):
     token = generate_confirmation_token(user_email)
     confirm_url = url_for("auth.confirm_email", token=token, _external=True)
 
-    msg = Message("Confirm Your Email", recipients=[user_email])
-    msg.body = f"Please click the link to confirm your email: {confirm_url}"
+    msg = Message(subject="Verify Your ShopSphere Account", recipients=[user_email])
+    msg.html = render_template(
+        "email_verification.html",
+        username=user_email.split("@")[0],
+        confirmation_url=confirm_url,
+    )
     email_manager.send(msg)
+    return success_response(f"verification email sent successfully to {user_email}")
