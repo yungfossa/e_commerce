@@ -5,11 +5,11 @@ from typing import List
 from flask import jsonify, current_app, url_for, render_template
 from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
 from .errors.handlers import unauthorized
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from flask_mail import Message
 import re
 
 from .. import email_manager
+from ..models import User
 
 # RFC 5322 compliant regexp used for email validation
 email_pattern = re.compile(
@@ -42,38 +42,47 @@ def success_response(message: str, data=None, status_code=200):
     return jsonify(response), status_code
 
 
-def valide_email(email: str) -> bool:
+def validate_email(email: str) -> bool:
     return True if email_pattern.match(email) else False
 
 
-def generate_confirmation_token(email: str):
-    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-    return serializer.dumps(email, salt=current_app.config["MAIL_CONFIRM_SALT"])
-
-
-def confirm_token(token, expiration=86400):
-    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-    try:
-        email = serializer.loads(
-            token, salt=current_app.config["MAIL_CONFIRM_SALT"], max_age=expiration
-        )
-    except BadSignature or SignatureExpired:  # TODO check if it is correct
-        return False
-    return email
-
-
-def send_confirmation_email(user_email: str):
-    token = generate_confirmation_token(user_email)
-    confirm_url = url_for("auth.confirm_email", token=token, _external=True)
-
-    msg = Message(subject="Verify Your ShopSphere Account", recipients=[user_email])
-    msg.html = render_template(
-        "email_verification.html",
-        username=user_email.split("@")[0],
-        confirmation_url=confirm_url,
-    )
+def send_email(subject, sender, recipients, html_body, text_body=None):
+    msg = Message(subject, sender=sender, recipients=recipients)
+    msg.body = text_body
+    msg.html = html_body
     email_manager.send(msg)
-    return success_response(f"verification email sent successfully to {user_email}")
+
+
+def send_confirmation_email(user: User):
+    token = user.get_account_verification_token()
+    confirm_url = url_for("auth.confirm_email", token=token, _external=True)
+    send_email(
+        subject="Verify Your ShopSphere Account",
+        sender=current_app.config["MAIL_DEFAULT_SENDER"],
+        recipients=[user.email],
+        html_body=render_template(
+            "email_verification.html",
+            username=user.email.split("@")[0],
+            confirmation_url=confirm_url,
+        ),
+    )
+    return success_response(f"verification mail sent successfully to {user.email}")
+
+
+def send_password_reset_email(user: User):
+    token = user.get_reset_password_token()
+    reset_password_url = url_for("auth.reset_password", token=token, _external=True)
+    send_email(
+        subject="Reset Your ShopSphere Account Password",
+        sender=current_app.config["MAIL_DEFAULT_SENDER"],
+        recipients=[user.email],
+        html_body=render_template(
+            "password_reset.html",
+            username=user.email.split("@")[0],
+            reset_url=reset_password_url,
+        ),
+    )
+    return success_response(f"password reset mail sent successfully to {user.email}")
 
 
 def generate_secure_slug(name, max_length=50):

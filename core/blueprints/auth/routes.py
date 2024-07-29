@@ -9,12 +9,12 @@ from flask_jwt_extended import (
 )
 from ..utils import (
     success_response,
-    valide_email,
+    validate_email,
     send_confirmation_email,
-    confirm_token,
     generate_secure_slug,
+    send_password_reset_email,
 )
-from ..errors.handlers import bad_request, unauthorized, not_found
+from ..errors.handlers import bad_request, unauthorized
 from ...models import TokenBlocklist, User, Cart, Customer, WishList
 from ...extensions import jwt_manager
 
@@ -32,7 +32,7 @@ def signup():
     if not email or not password or not surname or not name:
         return bad_request("missing information")
 
-    if not valide_email(email):
+    if not validate_email(email):
         return bad_request("email not valid")
 
     if User.query.filter_by(email=email).first():
@@ -55,7 +55,7 @@ def signup():
         slug=generate_secure_slug(default_wishlist_name),
     )
 
-    send_confirmation_email(email)
+    send_confirmation_email(customer)
 
     return success_response(
         message="user created successfully. "
@@ -64,21 +64,17 @@ def signup():
     )
 
 
-@auth_bp.route("/verify/<token>")
+@auth_bp.route("/verify/<token>", methods=["GET"])
 def confirm_email(token):
-    email = confirm_token(token)
-    if not email:
-        return bad_request("the confirmation link is invalid or has expired")
-
-    user = User.query.filter_by(email=email).first()
+    user = User.verify_account_verification_token(token)
 
     if not user:
-        return not_found("user not found")
+        return bad_request("the confirmation link is invalid or has expired")
 
     if user.is_verified:
         return success_response(message="account already confirmed")
     else:
-        user.update(is_verified=True, verified_on=datetime.now())
+        user.update(is_verified=True, verified_on=datetime.now())  # TODO try-catch?
 
     return success_response("you have confirmed your account")
 
@@ -92,7 +88,7 @@ def login():
     if not email or not password:
         return bad_request("missing email or password")
 
-    if not valide_email(email):
+    if not validate_email(email):
         return bad_request("email not valid")
 
     user = User.query.filter_by(email=email).first()
@@ -110,6 +106,49 @@ def login():
 
     return success_response(
         message="login successful", data={"access_token": access_token}
+    )
+
+
+@auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    user = User.verify_reset_password_token(token)
+
+    if not user:
+        return bad_request("the reset password link is invalid or has expired")
+
+    data = request.get_json()
+    new_password = data.get("new_password")
+
+    if not new_password:
+        return bad_request("missing password")
+
+    user.update(
+        password=bcrypt.generate_password_hash(new_password, 10).decode("utf-8")
+    )  # TODO try-catch?
+
+    return success_response("password has been reset correctly")
+
+
+@auth_bp.route("/reset-password-request", methods=["POST"])
+def request_password_change():
+    data = request.get_json()
+    email = str(data.get("email")).lower()
+
+    if not email:
+        return bad_request("missing email")
+
+    if not validate_email(email):
+        return bad_request("email not valid")
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return bad_request("user not found")
+
+    send_password_reset_email(user)
+
+    return success_response(
+        message="If an account exists with that email, a password reset link has been sent."
     )
 
 

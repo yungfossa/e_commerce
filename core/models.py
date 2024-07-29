@@ -18,6 +18,11 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from time import time
+from flask import current_app
+import jwt
+
+from . import db
 from .base_models import BaseModel
 from sqlalchemy_utils import create_materialized_view
 from sqlalchemy_utils.compat import _select_args
@@ -89,6 +94,40 @@ class User(BaseModel):
         "polymorphic_identity": UserType.USER,
         "polymorphic_on": user_type,
     }
+
+    def get_reset_password_token(self, expires_in=1200):
+        return jwt.encode(
+            {"reset_password": self.id, "exp": time() + expires_in},
+            current_app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+    @staticmethod
+    def verify_reset_password_token(token):
+        try:
+            _id = jwt.decode(
+                token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
+            )["reset_password"]
+        except Exception:
+            return
+        return db.session.get(User, _id)
+
+    def get_account_verification_token(self, expires_in=86400):  # 24 hours
+        return jwt.encode(
+            {"verify_account": self.id, "exp": time() + expires_in},
+            current_app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+    @staticmethod
+    def verify_account_verification_token(token):
+        try:
+            _id = jwt.decode(
+                token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
+            )["verify_account"]
+        except Exception:
+            return
+        return db.session.get(User, _id)
 
 
 class Admin(User):
