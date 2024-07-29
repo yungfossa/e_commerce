@@ -172,12 +172,42 @@ def clear_cart():
 @customer_bp.route("/wishlists/<string:slug>", methods=["POST"])
 @required_user_type(["customer"])
 def add_wishlist_entry(slug):
+    data = request.get_json()
+    listing_id = data.get("listing_id")
+
+    if not Listing.query.filter_by(listing_id=listing_id).first():
+        return bad_request("missing listing id")
+
+    customer_id = get_jwt_identity()
+
+    wishlist = WishList.query.filter_by(slug=slug, customer_id=customer_id).first()
+
+    if not wishlist:
+        return bad_request("wishlist not found")
+
+    wishlist_entry = WishListEntry.query.filter_by(
+        wishlist_id=wishlist.id, listing_id=listing_id
+    ).first()
+
+    if wishlist_entry:
+        return bad_request("the listing product it's already in the wishlist")
+
+    WishListEntry.create(wishlist_id=wishlist.id, listing_id=listing_id)
+
     return success_response("wishlist entry added successfully")
 
 
 @customer_bp.route("/wishlists/<string:slug>", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist_entry(slug):
+    data = request.get_json()
+    wishlist_entry_id = data.get("wishlist_entry_id")
+
+    if not wishlist_entry_id:
+        return bad_request("missing wishlist entry")
+
+    WishListEntry.query.filter_by(wishlist_entry_id=wishlist_entry_id).delete()
+
     return success_response("wishlist entry removed successfully")
 
 
