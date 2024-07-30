@@ -11,7 +11,6 @@ from ..utils import (
     success_response,
     validate_email,
     send_confirmation_email,
-    generate_secure_slug,
     send_password_reset_email,
 )
 from ..errors.handlers import bad_request, unauthorized
@@ -52,7 +51,6 @@ def signup():
     WishList.create(
         name=default_wishlist_name,
         customer_id=customer.id,
-        slug=generate_secure_slug(default_wishlist_name),
     )
 
     send_confirmation_email(customer)

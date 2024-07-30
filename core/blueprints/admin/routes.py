@@ -7,6 +7,7 @@ from ...models import Product, ProductCategory, User
 admin_bp = Blueprint("admin", __name__)
 
 
+# todo add filters
 @admin_bp.route("/admin/products", methods=["POST"])
 def products():
     data = request.get_json()

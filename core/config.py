@@ -5,9 +5,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-# TODO check if the app load correctly the config
-
-
 class Config(object):
     TESTING = False
     DEBUG = False

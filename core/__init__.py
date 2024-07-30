@@ -64,6 +64,14 @@ def create_app(config_name):
 
     app.register_blueprint(customer_bp)
 
+    from .blueprints.user.customer.cart import cart_bp
+
+    app.register_blueprint(cart_bp)
+
+    from .blueprints.user.customer.wishlist import wishlist_bp
+
+    app.register_blueprint(wishlist_bp)
+
     from .blueprints.user.seller import seller_bp
 
     app.register_blueprint(seller_bp)
