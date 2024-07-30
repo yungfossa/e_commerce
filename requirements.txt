@@ -61,3 +61,13 @@ werkzeug==3.0.2
     #   flask-login
 zipp==3.19.2
     # via importlib-metadata
+flask-mail==0.10.0
+apscheduler==3.10.4
+flask-apscheduler==1.13.1
+python-dateutil==2.9.0.post0
+pytz==2024.1
+six==1.16.0
+tzlocal==5.2
+setuptools==70.3.0
+sqlalchemy-serializer==1.4.22
+sqlalchemy-utils==0.41.2
