@@ -405,8 +405,9 @@ class DeleteRequest(BaseModel):
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
-    reason: Mapped[str] = mapped_column(Text)
+    reason: Mapped[Optional[str]] = mapped_column(Text)
     requested_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    removed_at: Mapped[datetime] = mapped_column(DateTime)
     user_id: Mapped[str] = mapped_column(ULID, ForeignKey("users.id"))
 
     user: Mapped["User"] = relationship(back_populates="delete_request")
