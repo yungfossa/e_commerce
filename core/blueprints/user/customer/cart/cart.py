@@ -37,7 +37,7 @@ def cart_summary(entries):
 def cart():
     cart_id = get_jwt_identity()
 
-    entries = (
+    cart_entries = (
         db.session.query(MVProductCategory, CartEntry, Listing)
         .join(CartEntry, CartEntry.listing_id == Listing.id)
         .join(MVProductCategory, Listing.product_id == MVProductCategory.product_id)
@@ -56,7 +56,7 @@ def cart():
         .all()
     )
 
-    return success_response("customer cart", data=cart_summary(entries))
+    return success_response("Customer cart", data=cart_summary(cart_entries))
 
 
 @cart_bp.route("/cart", methods=["POST"])
@@ -66,8 +66,11 @@ def upsert_cart_entry():
     listing_id = data.get("listing_id")
     amount = data.get("quantity")
 
-    if not listing_id or amount is None:
-        return bad_request("missing listing_id or quantity")
+    if not listing_id:
+        return bad_request("Missing listing")
+
+    if amount is None:
+        return bad_request("Missing quantity.")
 
     cart_id = get_jwt_identity()
 
@@ -76,33 +79,35 @@ def upsert_cart_entry():
     ).first()
 
     if not cart_entry:
-        return bad_request("cart entry not found")
+        return bad_request("Cart entry not found.")
 
     if amount == 0:
         if cart_entry:
             cart_entry.delete()
-            return success_response("cart entry removed successfully")
+            return success_response("Cart entry removed successfully.")
         else:
-            return bad_request("amount is 0. can't create a new entry in the cart")
+            return bad_request(
+                "Amount is 0. " "It is impossibile to create a new entry in the cart"
+            )
 
     listing = Listing.query.filter_by(id=cart_entry.listing_id).first()
 
     if not listing:
-        return bad_request("listing not found")
+        return bad_request("Listing not found.")
 
     if listing.quantity < amount:
         return bad_request(
-            f"the selected amount ({amount}) is "
+            f"The selected amount ({amount}) is "
             f"bigger than the available quantity ({listing.quantity})"
         )
 
     if cart_entry:
         cart_entry.update(amount=amount)
-        return success_response("cart entry amount updated successfully")
+        return success_response("Cart entry amount updated successfully")
 
     c = CartEntry.create(amount=amount, cart_id=cart_id, listing_id=listing_id)
 
-    return success_response("product added to cart successfully", data=c.to_dict())
+    return success_response("Product added to cart successfully.", data=c.to_dict())
 
 
 @cart_bp.route("/cart", methods=["DELETE"])
@@ -112,11 +117,11 @@ def remove_cart_entry():
     cart_entry_id = data.get("cart_entry_id")
 
     if not cart_entry_id:
-        return bad_request("cart_entry_id is missing")
+        return bad_request("Cart entry is missing.")
 
     CartEntry.query.filter_by(id=cart_entry_id).first().delete()
 
-    return success_response(message="cart entry removed successfully")
+    return success_response(message="Cart entry removed successfully.")
 
 
 @cart_bp.route("/cart/clear", methods=["DELETE"])
@@ -127,9 +132,9 @@ def clear_cart():
     cart_entries = CartEntry.query.filter_by(cart_id=cart_id).all()
 
     if not cart_entries:
-        return success_response(message="no cart entry to remove")
+        return bad_request(message="No cart entry to remove.")
 
     for ce in cart_entries:
         ce.delete()
 
-    return success_response(message="cart cleared successfully")
+    return success_response(message="Cart cleared successfully.")

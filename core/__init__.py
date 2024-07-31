@@ -55,7 +55,7 @@ def create_app(config_name):
 
     app.register_blueprint(errors_bp)
 
-    from .blueprints.auth import auth_bp
+    from core.blueprints.public_views.auth import auth_bp
 
     app.register_blueprint(auth_bp)
 

@@ -37,7 +37,7 @@ def create_product():
         name=name, description=description, image_src=image_src, category_id=c.id
     )
 
-    return success_response(message="product created successfully", data=p.to_dict())
+    return success_response(message="Product created successfully.", data=p.to_dict())
 
 
 # TODO require admin access, first implement integration test authentication in bash
@@ -47,7 +47,7 @@ def get_categories():
     cs = ProductCategory.query.all()
 
     return success_response(
-        message="product categories", data=[c.to_dict() for c in cs]
+        message="product categories:", data=[c.to_dict() for c in cs]
     )
 
 
@@ -62,9 +62,9 @@ def create_category():
     try:
         _pc = ProductCategory.create(title=title)
     except exc.IntegrityError:
-        return bad_request(error="category already exists")
+        return bad_request(error="Product category already exists.")
 
-    return success_response(message="product category created successfully")
+    return success_response(message="Product category created successfully.")
 
 
 # TODO require admin access, first implement integration test authentication in bash
@@ -77,7 +77,7 @@ def delete_category():
 
     _pc = ProductCategory.query.filter_by(title=title).first().delete()
 
-    return success_response(message=f"{title} category removed successfully")
+    return success_response(message=f"{title.title()} category removed successfully.")
 
 
 @admin_bp.route("/admin/users", methods=["GET"])

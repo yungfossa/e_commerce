@@ -73,11 +73,6 @@ class ReviewRate(enum.Enum):
     FIVE = 5
 
 
-# TODO /change-password route
-# TODO three endpoint to verify solo admin and from all
-# TODO solve the infinity recursion when a relationship is Null
-
-
 class TokenBlocklist(BaseModel):
     __tablename__ = "tokens_blocklist"
     id: Mapped[str] = mapped_column(
@@ -282,13 +277,14 @@ class Product(BaseModel):
 
 class Listing(BaseModel):
     __tablename__ = "listings"
+
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     quantity: Mapped[int]
-    available: Mapped[bool]
+    available: Mapped[bool] = mapped_column(default=False)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    product_state: Mapped[ProductState]
+    product_state: Mapped[str] = mapped_column(Enum(ProductState))
     purchase_count: Mapped[int] = mapped_column(default=0)
     view_count: Mapped[int] = mapped_column(default=0)
     seller_id: Mapped[str] = mapped_column(ULID, ForeignKey("sellers.id"))
@@ -297,7 +293,9 @@ class Listing(BaseModel):
     seller: Mapped["Seller"] = relationship(back_populates="listing")
     product: Mapped["Product"] = relationship(back_populates="listing")
     cart_entry: Mapped[List["CartEntry"]] = relationship(back_populates="listing")
-    review: Mapped[List["ListingReview"]] = relationship(back_populates="listing")
+    review: Mapped[List["ListingReview"]] = relationship(
+        back_populates="listing", cascade="all, delete-orphan"
+    )
     order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="listing")
 
 
@@ -308,7 +306,7 @@ class ListingReview(BaseModel):
     )
     title: Mapped[str] = mapped_column(String(64))
     description: Mapped[Optional[str]] = mapped_column(Text)
-    rating: Mapped[ReviewRate]
+    rating: Mapped[int] = mapped_column(Enum(ReviewRate))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     modified_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), onupdate=func.now()
@@ -389,7 +387,7 @@ class Order(BaseModel):
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    order_status: Mapped[OrderStatus]
+    order_status: Mapped[str] = mapped_column(Enum(OrderStatus))
     purchased_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     address_street: Mapped[str] = mapped_column(String(128))
     address_city: Mapped[str] = mapped_column(String(64))
@@ -445,7 +443,7 @@ class MVProductCategory(BaseModel):
             *_select_args(
                 Product.id.label("product_id"),
                 Product.name.label("product_name"),
-                Product.description.label("product_descr"),
+                Product.description.label("product_description"),
                 Product.image_src.label("product_img"),
                 ProductCategory.title.label("product_category"),
             )

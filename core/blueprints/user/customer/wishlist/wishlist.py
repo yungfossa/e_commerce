@@ -33,7 +33,7 @@ def wishlist_summary(wishlist):
     }
 
 
-@wishlist_bp.route("/wishlists/<string:ulid>", methods=["POST"])
+@wishlist_bp.route("/wishlist/<string:ulid>", methods=["POST"])
 @required_user_type(["customer"])
 def add_wishlist_entry(ulid):
     data = request.get_json()
@@ -61,7 +61,7 @@ def add_wishlist_entry(ulid):
     return success_response("wishlist entry added successfully")
 
 
-@wishlist_bp.route("/wishlists/<string:slug>", methods=["DELETE"])
+@wishlist_bp.route("/wishlist/<string:slug>", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist_entry(slug):
     data = request.get_json()
@@ -77,7 +77,7 @@ def remove_wishlist_entry(slug):
     return success_response("wishlist entry removed successfully")
 
 
-@wishlist_bp.route("/wishlists/<string:ulid>", methods=["GET"])
+@wishlist_bp.route("/wishlist/<string:ulid>", methods=["GET"])
 @required_user_type(["customer"])
 def get_wishlist_content(ulid):
     customer_id = get_jwt_identity()
@@ -106,7 +106,7 @@ def get_wishlist_content(ulid):
     return success_response("wishlist", data=wishlist_summary(entries))
 
 
-@wishlist_bp.route("/wishlists", methods=["GET"])
+@wishlist_bp.route("/wishlist", methods=["GET"])
 @required_user_type(["customer"])
 def get_wishlists():
     customer_id = get_jwt_identity()
@@ -121,7 +121,7 @@ def get_wishlists():
     return success_response("wishlists", data=wishlists_list)
 
 
-@wishlist_bp.route("/wishlists", methods=["POST"])
+@wishlist_bp.route("/wishlist", methods=["POST"])
 @required_user_type(["customer"])
 def upsert_wishlist():
     data = request.get_json()
@@ -155,7 +155,7 @@ def upsert_wishlist():
         )
 
 
-@wishlist_bp.route("/wishlists", methods=["DELETE"])
+@wishlist_bp.route("/wishlist", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist():
     data = request.get_json()
@@ -176,7 +176,7 @@ def remove_wishlist():
     return success_response(message="wishlist has been removed successfully")
 
 
-@wishlist_bp.route("/wishlists/clear", methods=["DELETE"])
+@wishlist_bp.route("/wishlist/clear", methods=["DELETE"])
 @required_user_type(["customer"])
 def clear_wishlists():
     customer_id = get_jwt_identity()
