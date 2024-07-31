@@ -40,10 +40,6 @@ def success_response(message: str, data=None, status_code=200):
     return jsonify(response), status_code
 
 
-def validate_email(email: str) -> bool:
-    return True if email_pattern.match(email) else False
-
-
 def send_email(subject, sender, recipients, html_body, text_body=None):
     msg = Message(subject, sender=sender, recipients=recipients)
     msg.body = text_body

@@ -73,6 +73,9 @@ class ReviewRate(enum.Enum):
     FIVE = 5
 
 
+# TODO add to lower in email field + remove to title case func
+
+
 class TokenBlocklist(BaseModel):
     __tablename__ = "tokens_blocklist"
     id: Mapped[str] = mapped_column(
@@ -90,8 +93,12 @@ class User(BaseModel):
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     email: Mapped[str] = mapped_column(String(64), unique=True)
-    name: Mapped[str] = mapped_column(String(32))
-    surname: Mapped[str] = mapped_column(String(32))
+    name: Mapped[str] = mapped_column(
+        String(32), default=func.initcap(func.lower(":name"))
+    )
+    surname: Mapped[str] = mapped_column(
+        String(32), default=func.initcap(func.lower(":name"))
+    )
     password: Mapped[Optional[str]] = mapped_column(String(64))
     birth_date: Mapped[Optional[datetime]] = mapped_column(Date)
     phone_number: Mapped[Optional[str]] = mapped_column(String(32))
@@ -454,3 +461,6 @@ class MVProductCategory(BaseModel):
         ),
         metadata=BaseModel.metadata,
     )
+
+
+# marshmallow_sqlalchemy schemas

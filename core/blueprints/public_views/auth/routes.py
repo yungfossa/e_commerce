@@ -9,49 +9,48 @@ from flask_jwt_extended import (
 )
 from core.blueprints.utils import (
     success_response,
-    validate_email,
     send_confirmation_email,
     send_password_reset_email,
 )
+from sqlalchemy.exc import IntegrityError
 from core.blueprints.errors.handlers import bad_request, unauthorized
+from core.validators.authentication import (
+    RegisterCredentialsSchema,
+    LoginCredentialsSchema,
+    ResetPasswordSchema,
+    ResetPasswordRequestSchema,
+)
 from core.models import TokenBlocklist, User, Cart, Customer, WishList, DeleteRequest
-from core.extensions import jwt_manager
+from core.extensions import jwt_manager, db
+from marshmallow import ValidationError
 
 auth_bp = Blueprint("auth", __name__)
+
+register_credentials_schema = RegisterCredentialsSchema()
+login_credentials_schema = LoginCredentialsSchema()
+request_password_schema = ResetPasswordRequestSchema()
+reset_password_schema = ResetPasswordSchema()
 
 
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
-    data = request.get_json()
-    email = str(data.get("email")).lower()
-    name = str(data.get("name")).title()
-    surname = str(data.get("surname")).title()
-    password = data.get("password")
+    try:
+        validated_data = register_credentials_schema.load(data=request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
 
-    if not email:
-        return bad_request("Email is missing.")
-
-    if not password:
-        return bad_request("Password is missing.")
-
-    if not surname:
-        return bad_request("Surname is missing.")
-
-    if not name:
-        return bad_request("Name is missing.")
-
-    if not validate_email(email):
-        return bad_request("Email not valid.")
-
-    if User.query.filter_by(email=email).first():
+    try:
+        customer = Customer.create(
+            email=validated_data.email,
+            name=validated_data.name,
+            surname=validated_data.surname,
+            password=bcrypt.generate_password_hash(validated_data.password, 10).decode(
+                "utf-8"
+            ),
+        )
+    except IntegrityError:
+        db.session.rollback()
         return bad_request("Email already exists")
-
-    customer = Customer.create(
-        email=email,
-        name=name,
-        surname=surname,
-        password=bcrypt.generate_password_hash(password, 10).decode("utf-8"),
-    )
 
     Cart.create(customer_id=customer.id)
 
@@ -74,35 +73,30 @@ def confirm_email(token):
     user = User.verify_account_verification_token(token)
 
     if not user:
-        return bad_request("The verification link is invalid or has expired.")
+        return bad_request("The verification link is invalid or has expired")
 
     if user.is_verified:
-        return success_response(message="Account already verified.")
+        return success_response(message="Account already verified")
     else:
         user.update(is_verified=True, verified_on=datetime.now())
 
-    return success_response("You have verified your account.")
+    return success_response("You have verified your account")
 
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
-    email = str(data.get("email")).lower()
-    password = data.get("password")
+    try:
+        validated_data = login_credentials_schema.load(data=request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
 
-    if not email:
-        return bad_request("Missing email.")
+    user = User.query.filter_by(email=validated_data.email).first()
 
-    if not password:
-        return bad_request("Missing password.")
+    if not user:
+        return bad_request("User not found")
 
-    if not validate_email(email):
-        return bad_request("Email not valid.")
-
-    user = User.query.filter_by(email=email).first()
-
-    if not user or not bcrypt.check_password_hash(user.password, password):
-        return unauthorized("Invalid email or password.")
+    if not bcrypt.check_password_hash(user.password, validated_data.password):
+        return unauthorized("Invalid password")
 
     dr = DeleteRequest.query.filter_by(user_id=user.id).first()
 
@@ -115,7 +109,7 @@ def login():
         )
 
     if not user.is_verified:
-        return unauthorized("Please confirm your email before logging in.")
+        return unauthorized("Please confirm your email before logging in")
 
     access_token = create_access_token(
         identity=user.id,
@@ -123,7 +117,7 @@ def login():
     )
 
     return success_response(
-        message="Login successful.", data={"access_token": access_token}
+        message="Login successful", data={"access_token": access_token}
     )
 
 
@@ -134,14 +128,15 @@ def reset_password(token):
     if not user:
         return bad_request("The reset password link is invalid or has expired.")
 
-    data = request.get_json()
-    new_password = data.get("new_password")
-
-    if not new_password:
-        return bad_request("Missing new password.")
+    try:
+        validated_data = reset_password_schema.load(data=request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
 
     user.update(
-        password=bcrypt.generate_password_hash(new_password, 10).decode("utf-8")
+        password=bcrypt.generate_password_hash(validated_data.password, 10).decode(
+            "utf-8"
+        )
     )
 
     return success_response("Password has been reset correctly.")
@@ -149,16 +144,12 @@ def reset_password(token):
 
 @auth_bp.route("/reset-password-request", methods=["POST"])
 def request_password_change():
-    data = request.get_json()
-    email = str(data.get("email")).lower()
+    try:
+        validated_data = request_password_schema.load(data=request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
 
-    if not email:
-        return bad_request("Missing email")
-
-    if not validate_email(email):
-        return bad_request("Email not valid")
-
-    user = User.query.filter_by(email=email).first()
+    user = User.query.filter_by(email=validated_data.email).first()
 
     if not user:
         return bad_request("User not found")
@@ -170,7 +161,6 @@ def request_password_change():
     )
 
 
-# callback function to check if a JWT exists in the database blocklist
 @jwt_manager.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
     jti = jwt_payload["jti"]
@@ -178,8 +168,6 @@ def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
     return token is not None
 
 
-# endpoint for revoking the current user access token. saved the unique identifier
-# (jti) for the JWT into our database
 @auth_bp.route("/logout", methods=["DELETE"])
 @jwt_required()
 def revoke_token():
@@ -192,4 +180,4 @@ def revoke_token():
         jti=jti, created_at=now, expired_at=exp, user_id=get_jwt_identity()
     )
 
-    return success_response(message="jwt token revoked successfully")
+    return success_response(message="Logout successful")
