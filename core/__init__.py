@@ -26,7 +26,7 @@ def create_app(config_name):
 
     from .scheduler_jobs import (
         cleanup_tokens_blocklist as cleanup_tokens_blocklist,
-        checkup_delete_requests as checkup_delete_requests,
+        cleanup_delete_requests as cleanup_delete_requests,
     )
 
     scheduler.start()

@@ -454,6 +454,3 @@ class MVProductCategory(BaseModel):
         ),
         metadata=BaseModel.metadata,
     )
-
-
-# marshmallow_sqlalchemy schemas

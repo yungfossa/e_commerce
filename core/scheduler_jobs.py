@@ -18,8 +18,8 @@ def cleanup_tokens_blocklist():
                 token.delete()
 
 
-@scheduler.task("cron", id="delete_requests_check_up", hour=0)
-def checkup_delete_requests():
+@scheduler.task("cron", id="delete_requests_cleanup", hour=0)
+def cleanup_delete_requests():
     with scheduler.app.app_context():
         current_time = datetime.utcnow()
 
