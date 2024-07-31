@@ -73,9 +73,6 @@ class ReviewRate(enum.Enum):
     FIVE = 5
 
 
-# TODO add to lower in email field + remove to title case func
-
-
 class TokenBlocklist(BaseModel):
     __tablename__ = "tokens_blocklist"
     id: Mapped[str] = mapped_column(
@@ -93,20 +90,16 @@ class User(BaseModel):
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     email: Mapped[str] = mapped_column(String(64), unique=True)
-    name: Mapped[str] = mapped_column(
-        String(32), default=func.initcap(func.lower(":name"))
-    )
-    surname: Mapped[str] = mapped_column(
-        String(32), default=func.initcap(func.lower(":name"))
-    )
+    name: Mapped[str] = mapped_column(String(32))
+    surname: Mapped[str] = mapped_column(String(32))
     password: Mapped[Optional[str]] = mapped_column(String(64))
     birth_date: Mapped[Optional[datetime]] = mapped_column(Date)
     phone_number: Mapped[Optional[str]] = mapped_column(String(32))
     user_type: Mapped[str] = mapped_column(Enum(UserType))
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow())
     modified_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
+        DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow()
     )
     verified_on: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
@@ -314,9 +307,9 @@ class ListingReview(BaseModel):
     title: Mapped[str] = mapped_column(String(64))
     description: Mapped[Optional[str]] = mapped_column(Text)
     rating: Mapped[int] = mapped_column(Enum(ReviewRate))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow())
     modified_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
+        DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow()
     )
     customer_id: Mapped[str] = mapped_column(ULID, ForeignKey("customers.id"))
     listing_id: Mapped[str] = mapped_column(ULID, ForeignKey("listings.id"))

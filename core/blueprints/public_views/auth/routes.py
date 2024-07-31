@@ -41,9 +41,9 @@ def signup():
 
     try:
         customer = Customer.create(
-            email=validated_data.email,
-            name=validated_data.name,
-            surname=validated_data.surname,
+            email=str(validated_data.email).lower(),
+            name=str(validated_data.name).title(),
+            surname=str(validated_data.surname).title(),
             password=bcrypt.generate_password_hash(validated_data.password, 10).decode(
                 "utf-8"
             ),
@@ -90,7 +90,7 @@ def login():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    user = User.query.filter_by(email=validated_data.email).first()
+    user = User.query.filter_by(email=str(validated_data.email).lower()).first()
 
     if not user:
         return bad_request("User not found")
@@ -149,7 +149,7 @@ def request_password_change():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    user = User.query.filter_by(email=validated_data.email).first()
+    user = User.query.filter_by(email=str(validated_data.email).lower()).first()
 
     if not user:
         return bad_request("User not found")
