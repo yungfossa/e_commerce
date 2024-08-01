@@ -14,7 +14,7 @@ from core.blueprints.utils import (
 )
 from sqlalchemy.exc import IntegrityError
 from core.blueprints.errors.handlers import bad_request, unauthorized
-from core.validators.authentication import (
+from core.validators.user_auth import (
     RegisterCredentialsSchema,
     LoginCredentialsSchema,
     ResetPasswordSchema,

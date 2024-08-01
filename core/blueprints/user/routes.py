@@ -14,6 +14,7 @@ user_bp = Blueprint("user", __name__)
 def profile():
     user = User.query.filter_by(id=get_jwt_identity()).first()
 
+    # TODO move it from here -> to /seller
     if user.user_type.value == "seller":
         return success_response(
             message="seller profile",

@@ -1,15 +1,24 @@
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
+from marshmallow import ValidationError
 
 from core import db
 from core.blueprints.errors.handlers import bad_request
-from core.blueprints.utils import (
-    required_user_type,
-    success_response,
-)
+from core.blueprints.utils import required_user_type, success_response
 from core.models import Listing, WishList, WishListEntry, MVProductCategory, Seller
+from core.validators.customer_wishlist import (
+    RemoveFromWishlistSchema,
+    AddToWishlistSchema,
+    UpsertWishlistSchema,
+    WishlistDetailsSchema,
+)
 
 wishlist_bp = Blueprint("wishlist", __name__)
+
+validate_insert_to_wl = AddToWishlistSchema()
+validate_remove_from_wl = RemoveFromWishlistSchema()
+validate_upsert_wl = UpsertWishlistSchema()
+validate_wl = WishlistDetailsSchema()
 
 
 def wishlist_summary(wishlist):
@@ -33,58 +42,13 @@ def wishlist_summary(wishlist):
     }
 
 
-@wishlist_bp.route("/wishlist/<string:ulid>", methods=["POST"])
-@required_user_type(["customer"])
-def add_wishlist_entry(ulid):
-    data = request.get_json()
-    listing_id = data.get("listing_id")
-
-    if not Listing.query.filter_by(listing_id=listing_id).first():
-        return bad_request("missing listing id")
-
-    customer_id = get_jwt_identity()
-
-    wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
-
-    if not wishlist:
-        return bad_request("wishlist not found")
-
-    wishlist_entry = WishListEntry.query.filter_by(
-        wishlist_id=wishlist.id, listing_id=listing_id
-    ).first()
-
-    if wishlist_entry:
-        return bad_request("the listing product it's already in the wishlist")
-
-    WishListEntry.create(wishlist_id=wishlist.id, listing_id=listing_id)
-
-    return success_response("wishlist entry added successfully")
-
-
-@wishlist_bp.route("/wishlist/<string:slug>", methods=["DELETE"])
-@required_user_type(["customer"])
-def remove_wishlist_entry(slug):
-    data = request.get_json()
-    wishlist_entry_id = data.get("wishlist_entry_id")
-
-    if not wishlist_entry_id:
-        return bad_request("missing wishlist entry")
-
-    WishListEntry.query.filter_by(
-        wishlist_id=slug, wishlist_entry_id=wishlist_entry_id
-    ).delete()
-
-    return success_response("wishlist entry removed successfully")
-
-
 @wishlist_bp.route("/wishlist/<string:ulid>", methods=["GET"])
 @required_user_type(["customer"])
 def get_wishlist_content(ulid):
     customer_id = get_jwt_identity()
     wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
-
     if not wishlist:
-        return bad_request("wishlist not found or you don't have access to it")
+        return bad_request(message="Wishlist not found")
 
     entries = (
         db.session.query(MVProductCategory, WishListEntry, Listing, Seller)
@@ -103,7 +67,49 @@ def get_wishlist_content(ulid):
         .all()
     )
 
-    return success_response("wishlist", data=wishlist_summary(entries))
+    return success_response("Wishlist", data=wishlist_summary(entries))
+
+
+@wishlist_bp.route("/wishlist/<string:ulid>", methods=["POST"])
+@required_user_type(["customer"])
+def add_wishlist_entry(ulid):
+    try:
+        validated_data = validate_insert_to_wl.load(request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
+
+    _listing_id = validated_data["listing_id"]
+    customer_id = get_jwt_identity()
+
+    wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
+    if not wishlist:
+        return bad_request(message="Wishlist not found")
+
+    wishlist_entry = WishListEntry.query.filter_by(
+        wishlist_id=wishlist.id, listing_id=_listing_id
+    ).first()
+
+    if wishlist_entry:
+        return bad_request(message="The listing product is already in the wishlist")
+
+    WishListEntry.create(wishlist_id=wishlist.id, listing_id=_listing_id)
+
+    return success_response(message="Wishlist entry added successfully")
+
+
+@wishlist_bp.route("/wishlist/<string:ulid>", methods=["DELETE"])
+@required_user_type(["customer"])
+def remove_wishlist_entry(ulid):
+    try:
+        validated_data = validate_remove_from_wl.load(request.get_json())
+    except ValidationError as err:
+        return bad_request(message=err.messages)
+
+    WishListEntry.query.filter_by(
+        wishlist_id=ulid, id=validated_data["wishlist_entry_id"]
+    ).delete()
+
+    return success_response(message="Wishlist entry removed successfully")
 
 
 @wishlist_bp.route("/wishlist", methods=["GET"])
@@ -112,68 +118,68 @@ def get_wishlists():
     customer_id = get_jwt_identity()
 
     wishlists = WishList.query.filter_by(customer_id=customer_id).all()
-
     if not wishlists:
-        return success_response(message="no wishlist found")
+        return success_response(message="Wishlist not found")
 
     wishlists_list = [{"id": wl.id, "name": wl.name} for wl in wishlists]
 
-    return success_response("wishlists", data=wishlists_list)
+    return success_response("Wishlists", data=wishlists_list)
 
 
 @wishlist_bp.route("/wishlist", methods=["POST"])
 @required_user_type(["customer"])
 def upsert_wishlist():
-    data = request.get_json()
-    wishlist_id = data.get("wishlist_id")
-    wishlist_name = str(data.get("wishlist_name")).title()
+    try:
+        validated_data = validate_upsert_wl.load(request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
 
-    if not wishlist_name:
-        return bad_request("missing wishlist name")
-
+    _wishlist_id = validated_data["wishlist_id"]
+    _wishlist_name = validated_data["wishlist_name"]
     customer_id = get_jwt_identity()
 
     existing_wishlist = WishList.query.filter_by(
-        customer_id=customer_id, name=wishlist_name
+        customer_id=customer_id, name=_wishlist_name
     ).first()
 
-    if existing_wishlist and (not wishlist_id or existing_wishlist.slug != wishlist_id):
-        return bad_request("a wishlist with this name already exists")
+    if existing_wishlist and (not _wishlist_id or existing_wishlist.id != _wishlist_id):
+        return bad_request(message="A wishlist with this name already exists")
 
-    if wishlist_id:
+    if _wishlist_id:
         wishlist = WishList.query.filter_by(
-            id=wishlist_id, customer_id=customer_id
+            id=_wishlist_id, customer_id=customer_id
         ).first()
         if not wishlist:
-            return bad_request("wishlist not found")
-        wishlist.update(name=wishlist_name)
-        return success_response(message="wishlist updated successfully")
+            return bad_request(message="Wishlist not found")
+        wishlist.update(name=_wishlist_name)
+        return success_response(message="Wishlist updated successfully")
     else:
-        wishlist = WishList.create(name=wishlist_name, customer_id=customer_id)
+        wishlist = WishList.create(name=_wishlist_name, customer_id=customer_id)
         return success_response(
-            message="wishlist created successfully", data=wishlist.to_dict()
+            message="Wishlist created successfully", data=wishlist.to_dict()
         )
 
 
 @wishlist_bp.route("/wishlist", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist():
-    data = request.get_json()
-    wishlist_id = data.get("wishlist_id")
+    try:
+        validated_data = validate_wl.load(request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
 
-    if not wishlist_id:
-        return bad_request("wishlist slug is missing")
-
+    _wishlist_id = validated_data["wishlist_id"]
     customer_id = get_jwt_identity()
 
-    wishlist = WishList.query.filter_by(id=wishlist_id, customer_id=customer_id).first()
-
+    wishlist = WishList.query.filter_by(
+        id=_wishlist_id, customer_id=customer_id
+    ).first()
     if not wishlist:
-        return bad_request("wishlist not found")
+        return bad_request(message="Wishlist not found")
 
     wishlist.delete()
 
-    return success_response(message="wishlist has been removed successfully")
+    return success_response(message="Wishlist has been removed successfully")
 
 
 @wishlist_bp.route("/wishlist/clear", methods=["DELETE"])
@@ -182,11 +188,10 @@ def clear_wishlists():
     customer_id = get_jwt_identity()
 
     wishlists = WishList.query.filter_by(customer_id=customer_id).all()
-
     if not wishlists:
-        return success_response(message="no wishlists to clear")
+        return success_response(message="No wishlist")
 
     for wl in wishlists:
         wl.delete()
 
-    return success_response(message="wishlists cleared successfully")
+    return success_response(message="Wishlists deleted successfully")

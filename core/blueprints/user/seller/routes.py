@@ -1,13 +1,18 @@
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, case
+from marshmallow import ValidationError
 
 from core import db
-from core.blueprints.errors.handlers import not_found
+from core.blueprints.errors.handlers import not_found, bad_request
 from core.blueprints.utils import required_user_type, success_response
 from core.models import Listing, MVProductCategory, ListingReview, ReviewRate
+from core.validators.seller_listing import AddListingSchema, EditListingSchema
 
 seller_bp = Blueprint("seller", __name__)
+
+validate_add_listing = AddListingSchema()
+validate_edited_listing = EditListingSchema()
 
 
 def listings_summary(entries):
@@ -36,7 +41,7 @@ def listings_summary(entries):
     }
 
 
-# TODO refactor?
+# TODO refactor, improve the query?
 @seller_bp.route("/seller/listings", methods=["GET"])
 @required_user_type(["seller"])
 def listings():
@@ -83,28 +88,28 @@ def listings():
     )
 
     return success_response(
-        message="Your listings: ", data=listings_summary(listing_entries)
+        message="Listings: ", data=listings_summary(listing_entries)
     )
 
 
 @seller_bp.route("/seller/listings", methods=["POST"])
 @required_user_type(["seller"])
 def create_listing():
-    data = request.get_json()
-    quantity = data.get("quantity")
-    price = data.get("price")
-    product_state = data.get("product_state")
-    product_id = data.get("product_id")
+    try:
+        validated_data = validate_add_listing.load(request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
 
+    _quantity = validated_data["quantity"]
     seller_id = get_jwt_identity()
 
     new_listing = Listing.create(
-        quantity=quantity,
-        price=price,
-        available=(quantity != 0),
-        product_state=product_state,
+        quantity=_quantity,
+        price=validated_data["price"],
+        available=(_quantity != 0),
+        product_state=validated_data["product_state"],
         seller_id=seller_id,
-        product_id=product_id,
+        product_id=validated_data["product_id"],
     )
 
     return success_response(message="New listing added", data=new_listing.to_dict())
@@ -116,7 +121,7 @@ def get_listing(ulid):
     listing = Listing.query.filter_by(id=ulid).first()
 
     if not listing:
-        return not_found("Listing not found.")
+        return not_found("Listing not found")
 
     return success_response(message=f"Listing #{ulid}", data=listing.to_dict())
 
@@ -127,29 +132,33 @@ def delete_listing(ulid):
     listing = Listing.query.filter_by(id=ulid).first()
 
     if not listing:
-        return not_found("Listing not found: it has been already deleted.")
+        return not_found("Listing not found: it has been already deleted")
 
     listing.delete()
 
-    return success_response(f"Listing #{ulid} has been deleted successfully.")
+    return success_response(f"Listing #{ulid} has been deleted successfully")
 
 
 @seller_bp.route("/seller/listings/<string:ulid>", methods=["PUT"])
 @required_user_type(["seller"])
 def edit_listing(ulid):
-    data = request.get_json()
-    quantity = data.get("quantity")
-    price = data.get("price")
+    try:
+        validated_data = validate_edited_listing.load(request.get_json())
+    except ValidationError as err:
+        return bad_request(err.messages)
 
     listing = Listing.query.filter_by(id=ulid).first()
 
     if not listing:
         return not_found("Listing not found.")
 
+    _quantity = validated_data["quantity"]
+    _price = validated_data["price"]
+
     listing.update(
-        quantity=quantity,
-        available=(quantity != 0),
-        price=price,
+        quantity=_quantity,
+        available=(_quantity != 0),
+        price=_price,
     )
 
     return success_response(f"Listing #{ulid} edited successfully.")
