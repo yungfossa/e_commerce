@@ -1,30 +1,49 @@
-from decimal import Decimal
-
 from marshmallow import fields, post_load, validates, ValidationError, Schema
-from marshmallow.validate import Range
 
+from decimal import Decimal
 from core.validators.customer.customer_wishlist import BaseSchema
 from core.models import Product, ProductState
 
 
-class AddListingSchema(BaseSchema):
+def validate_quantity(value: int):
+    if value < 1:
+        raise ValidationError("Invalid quantity: quantity should be at least 1")
+
+
+def validate_price(value: Decimal):
+    if not (Decimal("0.01") <= value <= Decimal("99999999.99")):
+        raise ValidationError(
+            "Invalid price: Price must be between 0.01 and 99999999.99"
+        )
+
+
+class EditListingSchema(Schema):
     quantity = fields.Integer(
         required=True,
-        validate=Range(min=1),
+        validate=validate_quantity,
         error_messages={
             "required": "Missing listing quantity",
-            "invalid": "Quantity must be a positive integer",
         },
     )
+
     price = fields.Decimal(
         required=True,
         places=2,
-        validate=Range(min=Decimal("0.01"), max=Decimal("99999999.99")),
+        validate=validate_price,
         error_messages={
             "required": "Missing listing price",
-            "invalid": "Price must be between 0.01 and 99999999.99",
         },
     )
+
+    @post_load
+    def get_validated_edited_listing(self, data, **kwargs):
+        return {
+            "quantity": data["quantity"],
+            "price": data["price"],
+        }
+
+
+class AddListingSchema(BaseSchema, EditListingSchema):
     product_state = fields.String(
         required=True,
         error_messages={"required": "Missing listing state"},
@@ -49,32 +68,4 @@ class AddListingSchema(BaseSchema):
             "quantity": data["quantity"],
             "price": data["price"],
             "product_state": data["product_state"],
-        }
-
-
-class EditListingSchema(Schema):
-    quantity = fields.Integer(
-        required=True,
-        validate=Range(min=1),
-        error_messages={
-            "required": "Missing listing quantity",
-            "invalid": "Quantity must be a positive integer",
-        },
-    )
-
-    price = fields.Decimal(
-        required=True,
-        places=2,
-        validate=Range(min=Decimal("0.01"), max=Decimal("99999999.99")),
-        error_messages={
-            "required": "Missing listing price",
-            "invalid": "Price must be between 0.01 and 99999999.99",
-        },
-    )
-
-    @post_load
-    def get_validated_edited_listing(self, data, **kwargs):
-        return {
-            "quantity": data["quantity"],
-            "price": data["price"],
         }
