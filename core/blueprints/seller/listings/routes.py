@@ -7,9 +7,9 @@ from core import db
 from core.blueprints.errors.handlers import not_found, bad_request
 from core.blueprints.utils import required_user_type, success_response
 from core.models import Listing, MVProductCategory, ListingReview, ReviewRate
-from core.validators.seller_listing import AddListingSchema, EditListingSchema
+from core.validators.seller.seller_listing import AddListingSchema, EditListingSchema
 
-seller_bp = Blueprint("seller", __name__)
+seller_listings_bp = Blueprint("seller_listings", __name__)
 
 validate_add_listing = AddListingSchema()
 validate_edited_listing = EditListingSchema()
@@ -41,8 +41,7 @@ def listings_summary(entries):
     }
 
 
-# TODO refactor, improve the query?
-@seller_bp.route("/seller/listings", methods=["GET"])
+@seller_listings_bp.route("/seller/listings", methods=["GET"])
 @required_user_type(["seller"])
 def listings():
     seller_id = get_jwt_identity()
@@ -92,7 +91,7 @@ def listings():
     )
 
 
-@seller_bp.route("/seller/listings", methods=["POST"])
+@seller_listings_bp.route("/seller/listings", methods=["POST"])
 @required_user_type(["seller"])
 def create_listing():
     try:
@@ -115,7 +114,7 @@ def create_listing():
     return success_response(message="New listing added", data=new_listing.to_dict())
 
 
-@seller_bp.route("/seller/listings/<string:ulid>", methods=["GET"])
+@seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["GET"])
 @required_user_type(["seller"])
 def get_listing(ulid):
     listing = Listing.query.filter_by(id=ulid).first()
@@ -126,7 +125,7 @@ def get_listing(ulid):
     return success_response(message=f"Listing #{ulid}", data=listing.to_dict())
 
 
-@seller_bp.route("/seller/listings/<string:ulid>", methods=["DELETE"])
+@seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["DELETE"])
 @required_user_type(["seller"])
 def delete_listing(ulid):
     listing = Listing.query.filter_by(id=ulid).first()
@@ -139,7 +138,7 @@ def delete_listing(ulid):
     return success_response(f"Listing #{ulid} has been deleted successfully")
 
 
-@seller_bp.route("/seller/listings/<string:ulid>", methods=["PUT"])
+@seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["PUT"])
 @required_user_type(["seller"])
 def edit_listing(ulid):
     try:

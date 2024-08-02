@@ -3,7 +3,7 @@ from decimal import Decimal
 from marshmallow import fields, post_load, validates, ValidationError, Schema
 from marshmallow.validate import Range
 
-from core.validators.customer_wishlist import BaseSchema
+from core.validators.customer.customer_wishlist import BaseSchema
 from core.models import Product, ProductState
 
 

@@ -6,9 +6,12 @@ from core import db
 from core.blueprints.errors.handlers import bad_request
 from core.blueprints.utils import required_user_type, success_response
 from core.models import CartEntry, MVProductCategory, Listing, Seller
-from core.validators.customer_cart import UpsertCartSchema, RemoveFromCartSchema
+from core.validators.customer.customer_cart import (
+    UpsertCartSchema,
+    RemoveFromCartSchema,
+)
 
-cart_bp = Blueprint("cart", __name__)
+customer_cart_bp = Blueprint("customer_cart", __name__)
 
 validation_upsert_cart = UpsertCartSchema()
 validation_remove_from_cart = RemoveFromCartSchema()
@@ -37,7 +40,7 @@ def cart_summary(entries):
     }
 
 
-@cart_bp.route("/cart", methods=["GET"])
+@customer_cart_bp.route("/cart", methods=["GET"])
 @required_user_type(["customer"])
 def cart():
     cart_id = get_jwt_identity()
@@ -64,7 +67,7 @@ def cart():
     return success_response(message="Customer cart", data=cart_summary(cart_entries))
 
 
-@cart_bp.route("/cart", methods=["POST"])
+@customer_cart_bp.route("/cart", methods=["POST"])
 @required_user_type(["customer"])
 def upsert_cart_entry():
     try:
@@ -121,7 +124,7 @@ def upsert_cart_entry():
     )
 
 
-@cart_bp.route("/cart", methods=["DELETE"])
+@customer_cart_bp.route("/cart", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_cart_entry():
     try:
@@ -134,7 +137,7 @@ def remove_cart_entry():
     return success_response(message="Cart entry removed successfully")
 
 
-@cart_bp.route("/cart/clear", methods=["DELETE"])
+@customer_cart_bp.route("/cart/clear", methods=["DELETE"])
 @required_user_type(["customer"])
 def clear_cart():
     cart_id = get_jwt_identity()

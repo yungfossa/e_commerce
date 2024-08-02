@@ -95,6 +95,7 @@ class User(BaseModel):
     password: Mapped[Optional[str]] = mapped_column(String(64))
     birth_date: Mapped[Optional[datetime]] = mapped_column(Date)
     phone_number: Mapped[Optional[str]] = mapped_column(String(32))
+    profile_img: Mapped[Optional[str]] = mapped_column(Text)
     user_type: Mapped[str] = mapped_column(Enum(UserType))
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow())
@@ -189,13 +190,12 @@ class Customer(User):
         primary_key=True,
         server_default=func.gen_ulid(),
     )
-    address_id: Mapped[Optional[str]] = mapped_column(
-        ULID, ForeignKey("customer_addresses.id"), nullable=True
-    )
 
     cart: Mapped["Cart"] = relationship(back_populates="customer")
     address: Mapped[Optional["CustomerAddress"]] = relationship(
         back_populates="customer",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     wishlist: Mapped[Optional[List["WishList"]]] = relationship(
@@ -222,6 +222,9 @@ class CustomerAddress(BaseModel):
     state: Mapped[str] = mapped_column(String(64))
     country: Mapped[str] = mapped_column(String(64))
     postal_code: Mapped[str] = mapped_column(String(32))
+    customer_id: Mapped[Optional[str]] = mapped_column(
+        ULID, ForeignKey("customers.id"), nullable=True
+    )
 
     customer: Mapped["Customer"] = relationship(back_populates="address", uselist=False)
 

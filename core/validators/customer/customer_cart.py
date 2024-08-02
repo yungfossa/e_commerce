@@ -1,5 +1,5 @@
 from marshmallow import fields, post_load, validates, ValidationError
-from core.validators.customer_wishlist import BaseSchema
+from core.validators.customer.customer_wishlist import BaseSchema
 
 from core.models import Listing, Cart, CartEntry
 

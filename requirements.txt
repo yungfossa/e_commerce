@@ -73,3 +73,4 @@ sqlalchemy-serializer==1.4.22
 sqlalchemy-utils==0.41.2
 marshmallow==3.21.3
 marshmallow-sqlalchemy==1.0.0
+phonenumbers==8.13.42

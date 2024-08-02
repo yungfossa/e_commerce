@@ -59,28 +59,44 @@ def create_app(config_name):
 
     app.register_blueprint(auth_bp)
 
-    from .blueprints.user import user_bp
+    from core.blueprints.public_views.listings import listings_bp
 
-    app.register_blueprint(user_bp)
+    app.register_blueprint(listings_bp)
 
-    from .blueprints.user.customer import customer_bp
+    from core.blueprints.customer import customer_bp
 
     app.register_blueprint(customer_bp)
 
-    from .blueprints.user.customer.cart import cart_bp
+    from core.blueprints.customer.cart import customer_cart_bp
 
-    app.register_blueprint(cart_bp)
+    app.register_blueprint(customer_cart_bp)
 
-    from .blueprints.user.customer.wishlist import wishlist_bp
+    from core.blueprints.customer.wishlists import customer_wishlists_bp
 
-    app.register_blueprint(wishlist_bp)
+    app.register_blueprint(customer_wishlists_bp)
 
-    from .blueprints.user.seller import seller_bp
+    from core.blueprints.customer.profile import customer_profile_bp
+
+    app.register_blueprint(customer_profile_bp)
+
+    from core.blueprints.seller import seller_bp
 
     app.register_blueprint(seller_bp)
+
+    from core.blueprints.seller.profile import seller_profile_bp
+
+    app.register_blueprint(seller_profile_bp)
+
+    from core.blueprints.seller.listings import seller_listings_bp
+
+    app.register_blueprint(seller_listings_bp)
 
     from .blueprints.admin import admin_bp
 
     app.register_blueprint(admin_bp)
+
+    from .blueprints.admin.products import admin_products_bp
+
+    app.register_blueprint(admin_products_bp)
 
     return app

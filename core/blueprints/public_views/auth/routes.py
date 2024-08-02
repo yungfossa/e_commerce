@@ -14,7 +14,7 @@ from core.blueprints.utils import (
 )
 from sqlalchemy.exc import IntegrityError
 from core.blueprints.errors.handlers import bad_request, unauthorized
-from core.validators.user_auth import (
+from core.validators.auth.user_auth import (
     RegisterCredentialsSchema,
     LoginCredentialsSchema,
     ResetPasswordSchema,
@@ -115,6 +115,8 @@ def login():
         identity=user.id,
         additional_claims={"user_type": user.user_type.value},
     )
+
+    print(access_token)
 
     return success_response(
         message="Login successful", data={"access_token": access_token}

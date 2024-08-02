@@ -6,14 +6,14 @@ from core import db
 from core.blueprints.errors.handlers import bad_request
 from core.blueprints.utils import required_user_type, success_response
 from core.models import Listing, WishList, WishListEntry, MVProductCategory, Seller
-from core.validators.customer_wishlist import (
+from core.validators.customer.customer_wishlist import (
     RemoveFromWishlistSchema,
     AddToWishlistSchema,
     UpsertWishlistSchema,
     WishlistDetailsSchema,
 )
 
-wishlist_bp = Blueprint("wishlist", __name__)
+customer_wishlists_bp = Blueprint("customer_wishlists", __name__)
 
 validate_insert_to_wl = AddToWishlistSchema()
 validate_remove_from_wl = RemoveFromWishlistSchema()
@@ -42,7 +42,7 @@ def wishlist_summary(wishlist):
     }
 
 
-@wishlist_bp.route("/wishlist/<string:ulid>", methods=["GET"])
+@customer_wishlists_bp.route("/wishlists/<string:ulid>", methods=["GET"])
 @required_user_type(["customer"])
 def get_wishlist_content(ulid):
     customer_id = get_jwt_identity()
@@ -70,7 +70,7 @@ def get_wishlist_content(ulid):
     return success_response("Wishlist", data=wishlist_summary(entries))
 
 
-@wishlist_bp.route("/wishlist/<string:ulid>", methods=["POST"])
+@customer_wishlists_bp.route("/wishlists/<string:ulid>", methods=["POST"])
 @required_user_type(["customer"])
 def add_wishlist_entry(ulid):
     try:
@@ -97,7 +97,7 @@ def add_wishlist_entry(ulid):
     return success_response(message="Wishlist entry added successfully")
 
 
-@wishlist_bp.route("/wishlist/<string:ulid>", methods=["DELETE"])
+@customer_wishlists_bp.route("/wishlists/<string:ulid>", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist_entry(ulid):
     try:
@@ -112,7 +112,7 @@ def remove_wishlist_entry(ulid):
     return success_response(message="Wishlist entry removed successfully")
 
 
-@wishlist_bp.route("/wishlist", methods=["GET"])
+@customer_wishlists_bp.route("/wishlists", methods=["GET"])
 @required_user_type(["customer"])
 def get_wishlists():
     customer_id = get_jwt_identity()
@@ -126,7 +126,7 @@ def get_wishlists():
     return success_response("Wishlists", data=wishlists_list)
 
 
-@wishlist_bp.route("/wishlist", methods=["POST"])
+@customer_wishlists_bp.route("/wishlists", methods=["POST"])
 @required_user_type(["customer"])
 def upsert_wishlist():
     try:
@@ -160,7 +160,7 @@ def upsert_wishlist():
         )
 
 
-@wishlist_bp.route("/wishlist", methods=["DELETE"])
+@customer_wishlists_bp.route("/wishlists", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist():
     try:
@@ -182,7 +182,7 @@ def remove_wishlist():
     return success_response(message="Wishlist has been removed successfully")
 
 
-@wishlist_bp.route("/wishlist/clear", methods=["DELETE"])
+@customer_wishlists_bp.route("/wishlists/clear", methods=["DELETE"])
 @required_user_type(["customer"])
 def clear_wishlists():
     customer_id = get_jwt_identity()
