@@ -21,7 +21,7 @@ class AddToWishlistSchema(BaseSchema):
 
     @post_load
     def get_validated_listing(self, data, **kwargs):
-        return {"listing_id": data["id"]}
+        return {"listing_id": data.get("id")}
 
 
 class RemoveFromWishlistSchema(BaseSchema):
@@ -35,7 +35,7 @@ class RemoveFromWishlistSchema(BaseSchema):
 
     @post_load
     def get_validated_entry(self, data, **kwargs):
-        return {"wishlist_entry_id": data["id"]}
+        return {"wishlist_entry_id": data.get("id")}
 
 
 class UpsertWishlistSchema(BaseSchema):
@@ -52,8 +52,8 @@ class UpsertWishlistSchema(BaseSchema):
     @post_load
     def get_validated_wishlist(self, data, **kwargs):
         return {
-            "wishlist_id": data["id"],
-            "wishlist_name": data["wishlist_name"],
+            "wishlist_id": data.get("id"),
+            "wishlist_name": data.get("wishlist_name"),
         }
 
 
@@ -67,5 +67,5 @@ class WishlistDetailsSchema(BaseSchema):
     @post_load
     def get_validated_wishlist(self, data, **kwargs):
         return {
-            "wishlist_id": data["id"],
+            "wishlist_id": data.get("id"),
         }

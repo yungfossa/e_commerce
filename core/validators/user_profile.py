@@ -19,8 +19,8 @@ class EditProfileSchema(Schema):
     @post_load
     def get_validated_customer_profile(self, data, **kwargs):
         return {
-            "phone_number": data["phone_number"],
-            "profile_img": data["profile_img"],
+            "phone_number": data.get("phone_number"),
+            "profile_img": data.get("profile_img"),
         }
 
 
@@ -30,7 +30,7 @@ class DeleteProfileSchema(Schema):
     @post_load
     def get_validated_delete_req(self, data, **kwargs):
         return {
-            "reason": data["reason"],
+            "reason": data.get("reason"),
         }
 
 
@@ -40,9 +40,9 @@ class EditSellerProfileSchema(EditProfileSchema):
     @post_load
     def get_validated_seller_profile(self, data, **kwargs):
         return {
-            "phone_number": data["phone_number"],
-            "profile_img": data["profile_img"],
-            "company_name": data["company_name"],
+            "phone_number": data.get("phone_number"),
+            "profile_img": data.get("profile_img"),
+            "company_name": data.get("company_name"),
         }
 
 

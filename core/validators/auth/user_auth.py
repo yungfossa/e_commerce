@@ -2,8 +2,6 @@ import re
 
 from marshmallow import Schema, fields, ValidationError, post_load
 
-from core.models import User
-
 email_format = re.compile(
     r"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|"
     r"\\[\x01-\x09\x0b\x0c\x0e-\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]"
@@ -31,17 +29,11 @@ def validate_email(value: str):
         raise ValidationError("Invalid email format")
 
 
-class BaseSchema(Schema):
-    @post_load
-    def make_user(self, data, **kwargs):
-        return User(**data)
-
-
-class EmailSchema(BaseSchema):
+class EmailSchema(Schema):
     email = fields.String(required=True, validate=validate_email)
 
 
-class PasswordSchema(BaseSchema):
+class PasswordSchema(Schema):
     password = fields.String(required=True, validate=validate_password)
 
 
@@ -49,14 +41,38 @@ class RegisterCredentialsSchema(EmailSchema, PasswordSchema):
     name = fields.String(required=True)
     surname = fields.String(required=True)
 
+    @post_load
+    def get_validated_register_credentials(self, data, **args):
+        return {
+            "email": data.get("email"),
+            "password": data.get("password"),
+            "name": data.get("name"),
+            "surname": data.get("surname"),
+        }
+
 
 class LoginCredentialsSchema(EmailSchema):
     password = fields.String(required=True)
 
+    @post_load
+    def get_validated_login_credentials(self, data, **args):
+        return {
+            "email": data.get("email"),
+            "password": data.get("password"),
+        }
+
 
 class ResetPasswordRequestSchema(EmailSchema):
-    pass
+    @post_load
+    def get_validated_email(self, data, **args):
+        return {
+            "email": data.get("email"),
+        }
 
 
 class ResetPasswordSchema(PasswordSchema):
-    pass
+    @post_load
+    def get_validated_password(self, data, **args):
+        return {
+            "password": data.get("password"),
+        }

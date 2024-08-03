@@ -99,19 +99,24 @@ def create_listing():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    _quantity = validated_data["quantity"]
+    quantity = validated_data.get("quantity")
+    price = validated_data.get("price")
+    product_state = validated_data.get("product_state")
+    product_id = validated_data.get("product_id")
+    available = quantity != 0
+
     seller_id = get_jwt_identity()
 
-    new_listing = Listing.create(
-        quantity=_quantity,
-        price=validated_data["price"],
-        available=(_quantity != 0),
-        product_state=validated_data["product_state"],
+    Listing.create(
+        quantity=quantity,
+        price=price,
+        available=available,
+        product_state=product_state,
         seller_id=seller_id,
-        product_id=validated_data["product_id"],
+        product_id=product_id,
     )
 
-    return success_response(message="New listing added", data=new_listing.to_dict())
+    return success_response(message="Listing added successfully")
 
 
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["GET"])
@@ -146,18 +151,19 @@ def edit_listing(ulid):
     except ValidationError as err:
         return bad_request(err.messages)
 
+    quantity = validated_data.get("quantity")
+    price = validated_data.get("price")
+    available = quantity != 0
+
     listing = Listing.query.filter_by(id=ulid).first()
 
     if not listing:
         return not_found("Listing not found.")
 
-    _quantity = validated_data["quantity"]
-    _price = validated_data["price"]
-
     listing.update(
-        quantity=_quantity,
-        available=(_quantity != 0),
-        price=_price,
+        quantity=quantity,
+        available=available,
+        price=price,
     )
 
     return success_response(f"Listing #{ulid} edited successfully.")

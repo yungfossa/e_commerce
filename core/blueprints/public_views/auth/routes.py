@@ -35,19 +35,22 @@ reset_password_schema = ResetPasswordSchema()
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
     try:
-        validated_data = register_credentials_schema.load(data=request.get_json())
+        validated_data = register_credentials_schema.load(request.get_json())
+
+        email = validated_data.get("email").lower()
+        name = validated_data.get("name").title()
+        surname = validated_data.get("surname").title()
+        password = validated_data.get("password")
+
+        customer = Customer.create(
+            email=email,
+            name=name,
+            surname=surname,
+            password=bcrypt.generate_password_hash(password, 10).decode("utf-8"),
+        )
+
     except ValidationError as err:
         return bad_request(err.messages)
-
-    try:
-        customer = Customer.create(
-            email=str(validated_data.email).lower(),
-            name=str(validated_data.name).title(),
-            surname=str(validated_data.surname).title(),
-            password=bcrypt.generate_password_hash(validated_data.password, 10).decode(
-                "utf-8"
-            ),
-        )
     except IntegrityError:
         db.session.rollback()
         return bad_request("Email already exists")
@@ -55,7 +58,7 @@ def signup():
     Cart.create(customer_id=customer.id)
 
     WishList.create(
-        name="Favorites",
+        name="favorites",
         customer_id=customer.id,
     )
 
@@ -90,12 +93,15 @@ def login():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    user = User.query.filter_by(email=str(validated_data.email).lower()).first()
+    email = validated_data.get("email").lower()
+    password = validated_data.get("password")
+
+    user = User.query.filter_by(email=email).first()
 
     if not user:
         return bad_request("User not found")
 
-    if not bcrypt.check_password_hash(user.password, validated_data.password):
+    if not bcrypt.check_password_hash(user.password, password):
         return unauthorized("Invalid password")
 
     dr = DeleteRequest.query.filter_by(user_id=user.id).first()
@@ -116,8 +122,6 @@ def login():
         additional_claims={"user_type": user.user_type.value},
     )
 
-    print(access_token)
-
     return success_response(
         message="Login successful", data={"access_token": access_token}
     )
@@ -135,10 +139,10 @@ def reset_password(token):
     except ValidationError as err:
         return bad_request(err.messages)
 
+    new_password = validated_data.get("password")
+
     user.update(
-        password=bcrypt.generate_password_hash(validated_data.password, 10).decode(
-            "utf-8"
-        )
+        password=bcrypt.generate_password_hash(new_password, 10).decode("utf-8")
     )
 
     return success_response("Password has been reset correctly.")
@@ -151,7 +155,9 @@ def request_password_change():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    user = User.query.filter_by(email=str(validated_data.email).lower()).first()
+    email = validated_data.get("email").lower()
+
+    user = User.query.filter_by(email=email).first()
 
     if not user:
         return bad_request("User not found")

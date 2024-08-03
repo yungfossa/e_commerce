@@ -13,7 +13,7 @@ class AddToCartSchema(BaseSchema):
 
     @post_load
     def get_validated_listing(self, data, **kwargs):
-        return {"listing_id": data["id"]}
+        return {"listing_id": data.get("id")}
 
 
 class RemoveFromCartSchema(BaseSchema):
@@ -25,7 +25,7 @@ class RemoveFromCartSchema(BaseSchema):
 
     @post_load
     def get_validated_entry(self, data, **kwargs):
-        return {"cart_entry_id": data["id"]}
+        return {"cart_entry_id": data.get("id")}
 
 
 class CartDetailsSchema(BaseSchema):
@@ -38,7 +38,7 @@ class CartDetailsSchema(BaseSchema):
     @post_load
     def get_validated_cart(self, data, **kwargs):
         return {
-            "cart_id": data["id"],
+            "cart_id": data.get("id"),
         }
 
 
@@ -56,6 +56,6 @@ class UpsertCartSchema(AddToCartSchema):
     @post_load
     def get_validated_cart_data(self, data, **kwargs):
         return {
-            "listing_id": data["id"],
-            "amount": data["amount"],
+            "listing_id": data.get("id"),
+            "amount": data.get("amount"),
         }

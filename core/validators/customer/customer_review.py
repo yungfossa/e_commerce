@@ -21,9 +21,9 @@ class EditCustomerReviewSchema(Schema):
     @post_load
     def get_validated_edited_review(self, data, **kwargs):
         return {
-            "title": data["title"],
-            "description": data["description"],
-            "rating": data["rating"],
+            "title": data.get("title"),
+            "description": data.get("description"),
+            "rating": data.get("rating"),
         }
 
 
@@ -43,21 +43,21 @@ class ReviewFilterSchema(Schema):
     date_filter = fields.String(
         required=False,
         missing="newest",
-        validate=OneOf(review_filters["date_filter"]),
+        validate=OneOf(review_filters.get("date_filter")),
         error_messages={"invalid arg": "Invalid date_filter"},
     )
     rate_filter = fields.String(
         required=False,
         missing="highest",
-        validate=OneOf(review_filters["rate_filter"]),
+        validate=OneOf(review_filters.get("rate_filter")),
         error_messages={"invalid arg": "Invalid rate_filter"},
     )
 
     @post_load
     def get_validated_review_filters(self, data, **kwargs):
         return {
-            "limit": data["limit"],
-            "offset": data["offset"],
-            "date_filter": data["date_filter"],
-            "rate_filter": data["rate_filter"],
+            "limit": data.get("limit"),
+            "offset": data.get("offset"),
+            "date_filter": data.get("date_filter"),
+            "rate_filter": data.get("rate_filter"),
         }

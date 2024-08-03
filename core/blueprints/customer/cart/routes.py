@@ -75,8 +75,9 @@ def upsert_cart_entry():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    _listing_id = validated_data["listing_id"]
-    _amount = validated_data["amount"]
+    _listing_id = validated_data.get("listing_id")
+    _amount = validated_data.get("amount")
+
     cart_id = get_jwt_identity()
 
     cart_entry = CartEntry.query.filter(
@@ -132,7 +133,9 @@ def remove_cart_entry():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    CartEntry.query.filter_by(id=validated_data["cart_entry_id"]).first().delete()
+    cart_entry_id = validated_data.get("cart_entry_id")
+
+    CartEntry.query.filter_by(id=cart_entry_id).first().delete()
 
     return success_response(message="Cart entry removed successfully")
 

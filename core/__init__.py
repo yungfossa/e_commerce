@@ -99,4 +99,8 @@ def create_app(config_name):
 
     app.register_blueprint(admin_products_bp)
 
+    from .blueprints.admin.users import admin_users_bp
+
+    app.register_blueprint(admin_users_bp)
+
     return app

@@ -80,13 +80,15 @@ def delete_profile():
     except ValidationError as err:
         return bad_request(err.messages)
 
+    reason = validated_data.get("reason")
+
     seller = User.query.filter_by(id=seller_id).first()
 
     requested_at = datetime.utcnow()
     removed_at = requested_at + timedelta(days=30)
 
     dr = DeleteRequest.create(
-        reason=validated_data["reason"],
+        reason=reason,
         requested_at=requested_at,
         user_id=seller.id,
         removed_at=removed_at,

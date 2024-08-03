@@ -46,7 +46,9 @@ def wishlist_summary(wishlist):
 @required_user_type(["customer"])
 def get_wishlist_content(ulid):
     customer_id = get_jwt_identity()
+
     wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
+
     if not wishlist:
         return bad_request(message="Wishlist not found")
 
@@ -78,7 +80,8 @@ def add_wishlist_entry(ulid):
     except ValidationError as err:
         return bad_request(err.messages)
 
-    _listing_id = validated_data["listing_id"]
+    listing_id = validated_data.get("listing_id")
+
     customer_id = get_jwt_identity()
 
     wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
@@ -86,13 +89,13 @@ def add_wishlist_entry(ulid):
         return bad_request(message="Wishlist not found")
 
     wishlist_entry = WishListEntry.query.filter_by(
-        wishlist_id=wishlist.id, listing_id=_listing_id
+        wishlist_id=wishlist.id, listing_id=listing_id
     ).first()
 
     if wishlist_entry:
         return bad_request(message="The listing product is already in the wishlist")
 
-    WishListEntry.create(wishlist_id=wishlist.id, listing_id=_listing_id)
+    WishListEntry.create(wishlist_id=wishlist.id, listing_id=listing_id)
 
     return success_response(message="Wishlist entry added successfully")
 
@@ -105,8 +108,11 @@ def remove_wishlist_entry(ulid):
     except ValidationError as err:
         return bad_request(message=err.messages)
 
+    wishlist_entry_id = validated_data.get("wishlist_entry_id")
+
     WishListEntry.query.filter_by(
-        wishlist_id=ulid, id=validated_data["wishlist_entry_id"]
+        id=wishlist_entry_id,
+        wishlist_id=ulid,
     ).delete()
 
     return success_response(message="Wishlist entry removed successfully")
@@ -118,6 +124,7 @@ def get_wishlists():
     customer_id = get_jwt_identity()
 
     wishlists = WishList.query.filter_by(customer_id=customer_id).all()
+
     if not wishlists:
         return success_response(message="Wishlist not found")
 
@@ -134,30 +141,29 @@ def upsert_wishlist():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    _wishlist_id = validated_data["wishlist_id"]
-    _wishlist_name = validated_data["wishlist_name"]
+    wishlist_id = validated_data.get("wishlist_id")
+    wishlist_name = validated_data.get("wishlist_name")
+
     customer_id = get_jwt_identity()
 
     existing_wishlist = WishList.query.filter_by(
-        customer_id=customer_id, name=_wishlist_name
+        customer_id=customer_id, name=wishlist_name
     ).first()
 
-    if existing_wishlist and (not _wishlist_id or existing_wishlist.id != _wishlist_id):
+    if existing_wishlist and (not wishlist_id or existing_wishlist.id != wishlist_id):
         return bad_request(message="A wishlist with this name already exists")
 
-    if _wishlist_id:
+    if wishlist_id:
         wishlist = WishList.query.filter_by(
-            id=_wishlist_id, customer_id=customer_id
+            id=wishlist_id, customer_id=customer_id
         ).first()
         if not wishlist:
             return bad_request(message="Wishlist not found")
-        wishlist.update(name=_wishlist_name)
+        wishlist.update(name=wishlist_name)
         return success_response(message="Wishlist updated successfully")
     else:
-        wishlist = WishList.create(name=_wishlist_name, customer_id=customer_id)
-        return success_response(
-            message="Wishlist created successfully", data=wishlist.to_dict()
-        )
+        wishlist = WishList.create(name=wishlist_name, customer_id=customer_id)
+        return success_response(message="Wishlist created successfully")
 
 
 @customer_wishlists_bp.route("/wishlists", methods=["DELETE"])
@@ -168,12 +174,12 @@ def remove_wishlist():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    _wishlist_id = validated_data["wishlist_id"]
+    wishlist_id = validated_data.get("wishlist_id")
+
     customer_id = get_jwt_identity()
 
-    wishlist = WishList.query.filter_by(
-        id=_wishlist_id, customer_id=customer_id
-    ).first()
+    wishlist = WishList.query.filter_by(id=wishlist_id, customer_id=customer_id).first()
+
     if not wishlist:
         return bad_request(message="Wishlist not found")
 
@@ -188,6 +194,7 @@ def clear_wishlists():
     customer_id = get_jwt_identity()
 
     wishlists = WishList.query.filter_by(customer_id=customer_id).all()
+
     if not wishlists:
         return success_response(message="No wishlist")
 

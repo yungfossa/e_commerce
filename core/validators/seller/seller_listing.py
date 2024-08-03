@@ -38,8 +38,8 @@ class EditListingSchema(Schema):
     @post_load
     def get_validated_edited_listing(self, data, **kwargs):
         return {
-            "quantity": data["quantity"],
-            "price": data["price"],
+            "quantity": data.get("quantity"),
+            "price": data.get("price"),
         }
 
 
@@ -64,8 +64,8 @@ class AddListingSchema(BaseSchema, EditListingSchema):
     @post_load
     def get_validated_listing(self, data, **kwargs):
         return {
-            "product_id": data["id"],
-            "quantity": data["quantity"],
-            "price": data["price"],
-            "product_state": data["product_state"],
+            "product_id": data.get("id"),
+            "quantity": data.get("quantity"),
+            "price": data.get("price"),
+            "product_state": data.get("product_state"),
         }

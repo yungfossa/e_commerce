@@ -34,7 +34,7 @@ def get_profile():
     customer = Customer.query.filter_by(id=get_jwt_identity()).first()
 
     return success_response(
-        message="profile",
+        message="Customer profile",
         data=customer.to_dict(
             only=(
                 "email",
@@ -87,13 +87,15 @@ def delete_profile():
     except ValidationError as err:
         return bad_request(err.messages)
 
+    reason = validated_data.get("reason")
+
     customer = User.query.filter_by(id=customer_id).first()
 
     requested_at = datetime.utcnow()
     removed_at = requested_at + timedelta(days=30)
 
     dr = DeleteRequest.create(
-        reason=validated_data["reason"],
+        reason=reason,
         requested_at=requested_at,
         user_id=customer.id,
         removed_at=removed_at,
@@ -115,8 +117,8 @@ def get_reviews():
 
         date_filter = query_params.get("date_filter")
         rate_filter = query_params.get("rate_filter")
-        limit = query_params["limit"]
-        offset = query_params["offset"]
+        limit = query_params.get("limit")
+        offset = query_params.get("offset")
 
         query = ListingReview.query.filter_by(customer_id=costumer_id)
 
