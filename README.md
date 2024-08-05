@@ -14,7 +14,7 @@ $ pre-commit run --all-files
 
 # Running the required services
 ```shell
-$ docker-compose up
+$ docker-compose up --build -d
 ```
 
 # Running the application
