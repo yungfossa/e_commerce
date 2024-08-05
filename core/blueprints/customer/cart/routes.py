@@ -75,19 +75,19 @@ def upsert_cart_entry():
     except ValidationError as err:
         return bad_request(err.messages)
 
-    _listing_id = validated_data.get("listing_id")
-    _amount = validated_data.get("amount")
+    listing_id = validated_data.get("listing_id")
+    amount = validated_data.get("amount")
 
     cart_id = get_jwt_identity()
 
     cart_entry = CartEntry.query.filter(
-        CartEntry.cart_id == cart_id and CartEntry.listing_id == _listing_id
+        CartEntry.cart_id == cart_id and CartEntry.listing_id == listing_id
     ).first()
 
     if not cart_entry:
         return bad_request(message="Cart entry not found")
 
-    if _amount == 0:
+    if amount == 0:
         if cart_entry:
             cart_entry.delete()
             return success_response(message="Cart entry removed successfully")
@@ -102,20 +102,20 @@ def upsert_cart_entry():
     if not listing:
         return bad_request("Listing not found")
 
-    if listing.quantity < _amount:
+    if listing.quantity < amount:
         return bad_request(
-            message=f"The selected amount {_amount} is "
+            message=f"The selected amount {amount} is "
             f"bigger than the available quantity ({listing.quantity})"
         )
 
     if cart_entry:
-        cart_entry.update(amount=_amount)
+        cart_entry.update(amount=amount)
         return success_response(message="Cart entry amount updated successfully")
 
     ce = CartEntry.create(
-        amount=_amount,
+        amount=amount,
         cart_id=cart_id,
-        listing_id=_listing_id,
+        listing_id=listing_id,
     )
 
     return success_response(

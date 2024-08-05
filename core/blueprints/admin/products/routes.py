@@ -14,7 +14,7 @@ validate_add_category = CategorySchema()
 validate_remove_category = CategorySchema()
 
 
-# todo add filters
+# TODO add filters
 @admin_products_bp.route("/admin/products", methods=["POST"])
 @required_user_type(["admin"])
 def get_products():
@@ -38,7 +38,7 @@ def create_product():
     name = validated_data.get("name").title()
     description = validated_data.get("description")
     image_src = validated_data.get("image_sr")
-    category = validated_data.get("category").lower()
+    category = validated_data.get("category").title()
 
     c = ProductCategory.query.filter_by(title=category).first()
 
@@ -73,7 +73,7 @@ def create_category():
     except ValidationError as verr:
         return bad_request(verr.messages)
 
-    title = validated_data.get("title")
+    title = validated_data.get("title").title()
 
     try:
         _pc = ProductCategory.create(title=title)
@@ -95,8 +95,13 @@ def delete_category():
     except ValidationError as verr:
         return bad_request(verr.messages)
 
-    title = validated_data.get("title").lower()
+    title = validated_data.get("title").title()
 
-    _pc = ProductCategory.query.filter_by(title=title).first().delete()
+    pc = ProductCategory.query.filter_by(title=title).first()
+
+    if not pc:
+        return success_response(message="Category already removed")
+
+    pc.delete()
 
     return success_response(message="Category removed successfully.")
