@@ -1,8 +1,5 @@
-import enum
-from sqlalchemy import inspect
-from sqlalchemy.orm import Mapped, mapped_column
 from .extensions import db
-from datetime import datetime
+from sqlalchemy_serializer import SerializerMixin
 
 
 class CRUDMixin(object):
@@ -37,32 +34,7 @@ class CRUDMixin(object):
         return
 
 
-class BaseModel(CRUDMixin, db.Model):
+class BaseModel(db.Model, CRUDMixin, SerializerMixin):
     """Base model class the includes CRUD convenience methods."""
 
     __abstract__ = True
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    @classmethod
-    def row_to_dict(cls, row, fields=None):
-        def serialize_value(value):
-            if isinstance(value, datetime):
-                return value.isoformat()
-            elif isinstance(value, enum.Enum):
-                return value.value
-            return str(value)
-
-        mapper = inspect(row.__class__)
-        columns = mapper.columns.keys()
-
-        result = {}
-        for key in columns:
-            if fields is None or key in fields:
-                value = getattr(row, key)
-                result[key] = serialize_value(value)
-
-        return result
-
-    def to_dict(self):
-        return self.row_to_dict(self)

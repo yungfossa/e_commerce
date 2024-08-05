@@ -9,18 +9,18 @@ create_category () {
   curl -g -s -XPUT 'http://localhost:5000/admin/category' \
     -H 'Content-Type: application/json' \
     -H "Authorization: Bearer $access_token" \
-    -d '{"title": "'$1'"}' | jq
+    -d '{"category_title": "'$1'"}' | jq
 }
 
 delete_category () {
   curl -g -s -XDELETE 'http://localhost:5000/admin/category' \
     -H 'Content-Type: application/json' \
     -H "Authorization: Bearer $access_token" \
-    -d '{"title": "'$1'"}' | jq
+    -d '{"category_title": "'$1'"}' | jq
 }
 
 create_product () {
-  curl -g -s -XPUT 'http://localhost:5000/product' \
+  curl -g -s -XPUT 'http://localhost:5000/admin/products' \
     -H 'Content-Type: application/json' \
     -H "Authorization: Bearer $access_token" \
     -d '{
@@ -32,7 +32,7 @@ create_product () {
 }
 
 list_product () {
-  curl -g -s -XPOST 'http://localhost:5000/products' \
+  curl -g -s -XPOST 'http://localhost:5000/admin/products' \
     -H 'Content-Type: application/json' \
     -d '{
       "limit": 50,

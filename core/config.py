@@ -13,6 +13,16 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
+    # mail configuration
+    MAIL_SERVER = os.getenv("MAIL_SERVER")
+    MAIL_PORT = os.getenv("MAIL_PORT")
+    MAIL_USE_TLS = False
+    MAIL_USE_SSL = True
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER")
+    MAIL_CONFIRM_SALT = os.getenv("MAIL_CONFIRM_SALT")
+
 
 class ProductionConfig(Config):
     pass
@@ -20,6 +30,7 @@ class ProductionConfig(Config):
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    SCHEDULER_API_ENABLED: True
     SQLALCHEMY_ECHO = True
     SQLALCHEMY_RECORD_QUERIES = True
 
