@@ -57,15 +57,11 @@ class UpsertWishlistSchema(BaseSchema):
         }
 
 
-class WishlistDetailsSchema(BaseSchema):
-    @validates("id")
-    def validate_wishlist(self, value: str):
-        wishlist = WishList.query.filter_by(id=value).first()
-        if wishlist is None:
-            raise ValidationError("Invalid wishlist_id: WishList does not exist.")
+class WishlistsDetailsSchema(Schema):
+    wishlists_ids = fields.List(fields.String, required=False)
 
     @post_load
     def get_validated_wishlist(self, data, **kwargs):
         return {
-            "wishlist_id": data.get("id"),
+            "wishlists_ids": data.get("wishlists_ids"),
         }

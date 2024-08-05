@@ -92,13 +92,13 @@ def delete_profile():
     customer = User.query.filter_by(id=customer_id).first()
 
     requested_at = datetime.utcnow()
-    removed_at = requested_at + timedelta(days=30)
+    to_be_removed_at = requested_at + timedelta(days=30)
 
     dr = DeleteRequest.create(
         reason=reason,
         requested_at=requested_at,
         user_id=customer.id,
-        removed_at=removed_at,
+        to_be_removed_at=to_be_removed_at,
     )
 
     return success_response(
@@ -115,21 +115,19 @@ def get_reviews():
     try:
         query_params = validate_review_filters.load(request.get_json())
 
-        date_filter = query_params.get("date_filter")
-        rate_filter = query_params.get("rate_filter")
+        order_by = query_params.get("order_by")
         limit = query_params.get("limit")
         offset = query_params.get("offset")
 
         query = ListingReview.query.filter_by(customer_id=costumer_id)
 
-        if date_filter == "newest":
+        if order_by == "newest":
             query = query.order_by(ListingReview.modified_at.desc())
-        elif date_filter == "oldest":
+        elif order_by == "oldest":
             query = query.order_by(ListingReview.modified_at.asc())
-
-        if rate_filter == "highest":
+        elif order_by == "highest":
             query = query.order_by(ListingReview.rating.desc())
-        elif rate_filter == "lowest":
+        elif order_by == "lowest":
             query = query.order_by(ListingReview.rating.desc())
 
         reviews = query.limit(limit).offset(offset).all()

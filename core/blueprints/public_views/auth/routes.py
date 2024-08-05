@@ -107,7 +107,7 @@ def login():
     dr = DeleteRequest.query.filter_by(user_id=user.id).first()
 
     if dr:
-        removal_date = dr.removed_at.strftime("%B %d, %Y")
+        removal_date = dr.to_be_removed_at.strftime("%B %d, %Y")
         return unauthorized(
             f"Your account has been disabled."
             f"If no action is taken, it will be permanently removed on {removal_date}. "

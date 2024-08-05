@@ -125,6 +125,7 @@ def upsert_cart_entry():
     )
 
 
+# TODO refactor as the wishlist
 @customer_cart_bp.route("/cart", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_cart_entry():
@@ -138,20 +139,3 @@ def remove_cart_entry():
     CartEntry.query.filter_by(id=cart_entry_id).first().delete()
 
     return success_response(message="Cart entry removed successfully")
-
-
-@customer_cart_bp.route("/cart/clear", methods=["DELETE"])
-@required_user_type(["customer"])
-def clear_cart():
-    cart_id = get_jwt_identity()
-
-    cart_entries = CartEntry.query.filter_by(cart_id=cart_id).all()
-
-    if not cart_entries:
-        return bad_request(message="No cart entry to remove")
-
-    # TODO possible try-catch ?
-    for ce in cart_entries:
-        ce.delete()
-
-    return success_response(message="Cart cleared successfully")

@@ -408,7 +408,7 @@ class DeleteRequest(BaseModel):
     )
     reason: Mapped[Optional[str]] = mapped_column(Text)
     requested_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    removed_at: Mapped[datetime] = mapped_column(DateTime)
+    to_be_removed_at: Mapped[datetime] = mapped_column(DateTime)
     user_id: Mapped[str] = mapped_column(ULID, ForeignKey("users.id"))
 
     user: Mapped["User"] = relationship(back_populates="delete_request")

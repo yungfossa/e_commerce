@@ -2,8 +2,7 @@ from marshmallow import Schema, fields, post_load
 from marshmallow.validate import OneOf, Range
 
 review_filters = {
-    "date_filter": ["newest", "oldest"],
-    "rate_filter": ["highest", "lowest"],
+    "order": ["newest", "oldest", "highest", "lowest"],
 }
 
 
@@ -40,17 +39,11 @@ class ReviewFilterSchema(Schema):
         validate=Range(min=0),
         error_messages={"invalid arg": "Invalid offset"},
     )
-    date_filter = fields.String(
+    order_by = fields.String(
         required=False,
         missing="newest",
-        validate=OneOf(review_filters.get("date_filter")),
-        error_messages={"invalid arg": "Invalid date_filter"},
-    )
-    rate_filter = fields.String(
-        required=False,
-        missing="highest",
-        validate=OneOf(review_filters.get("rate_filter")),
-        error_messages={"invalid arg": "Invalid rate_filter"},
+        validate=OneOf(review_filters.get("order")),
+        error_messages={"invalid arg": "Invalid order_by filter"},
     )
 
     @post_load
@@ -58,6 +51,5 @@ class ReviewFilterSchema(Schema):
         return {
             "limit": data.get("limit"),
             "offset": data.get("offset"),
-            "date_filter": data.get("date_filter"),
-            "rate_filter": data.get("rate_filter"),
+            "order_by": data.get("order_by"),
         }

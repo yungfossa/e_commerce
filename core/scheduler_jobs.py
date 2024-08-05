@@ -24,7 +24,7 @@ def cleanup_delete_requests():
         current_time = datetime.utcnow()
 
         expired_delete_request = DeleteRequest.query.filter(
-            DeleteRequest.removed_at <= current_time
+            DeleteRequest.to_be_removed_at <= current_time
         ).all()
 
         if expired_delete_request is not None:

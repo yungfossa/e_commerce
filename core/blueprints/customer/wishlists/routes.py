@@ -1,6 +1,7 @@
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from core import db
 from core.blueprints.errors.handlers import bad_request
@@ -10,7 +11,7 @@ from core.validators.customer.customer_wishlist import (
     RemoveFromWishlistSchema,
     AddToWishlistSchema,
     UpsertWishlistSchema,
-    WishlistDetailsSchema,
+    WishlistsDetailsSchema,
 )
 
 customer_wishlists_bp = Blueprint("customer_wishlists", __name__)
@@ -18,7 +19,7 @@ customer_wishlists_bp = Blueprint("customer_wishlists", __name__)
 validate_insert_to_wl = AddToWishlistSchema()
 validate_remove_from_wl = RemoveFromWishlistSchema()
 validate_upsert_wl = UpsertWishlistSchema()
-validate_wl = WishlistDetailsSchema()
+validate_wl = WishlistsDetailsSchema()
 
 
 def wishlist_summary(wishlist):
@@ -171,34 +172,33 @@ def upsert_wishlist():
 def remove_wishlist():
     try:
         validated_data = validate_wl.load(request.get_json())
+
+        wishlists_ids = validated_data.get("wishlists_ids")
+        customer_id = get_jwt_identity()
+
+        if not wishlists_ids:
+            return success_response(message="No wishlists specified for removal")
+
+        deleted_count = WishList.query.filter(
+            WishList.id.in_(wishlists_ids), WishList.customer_id == customer_id
+        ).delete()
+
+        if deleted_count == 0:
+            return success_response(message="No wishlists were found for removal")
+        elif deleted_count < len(wishlists_ids):
+            return success_response(
+                message=f"{deleted_count} out of {len(wishlists_ids)} wishlists were removed successfully"
+            )
+        else:
+            return success_response(
+                message="All specified wishlists have been removed successfully"
+            )
+
     except ValidationError as err:
         return bad_request(err.messages)
-
-    wishlist_id = validated_data.get("wishlist_id")
-
-    customer_id = get_jwt_identity()
-
-    wishlist = WishList.query.filter_by(id=wishlist_id, customer_id=customer_id).first()
-
-    if not wishlist:
-        return bad_request(message="Wishlist not found")
-
-    wishlist.delete()
-
-    return success_response(message="Wishlist has been removed successfully")
-
-
-@customer_wishlists_bp.route("/wishlists/clear", methods=["DELETE"])
-@required_user_type(["customer"])
-def clear_wishlists():
-    customer_id = get_jwt_identity()
-
-    wishlists = WishList.query.filter_by(customer_id=customer_id).all()
-
-    if not wishlists:
-        return success_response(message="No wishlist")
-
-    for wl in wishlists:
-        wl.delete()
-
-    return success_response(message="Wishlists deleted successfully")
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return bad_request(f"Database error occurred: {str(e)}")
+    except Exception as e:
+        db.session.rollback()
+        return bad_request(f"An unexpected error occurred: {str(e)}")
