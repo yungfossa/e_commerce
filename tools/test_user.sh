@@ -1,7 +1,7 @@
 #!/bin/bash
 
 create_user() {
-  curl -XPOST 'http://localhost:5000/signup' \
+  curl -s -XPOST 'http://localhost:5000/signup' \
     -H 'Content-Type: application/json' \
     --data '{"email":"'"$1"'","password":"'"$2"'","name":"foobar","surname":"foobar"}'
 }
@@ -20,12 +20,12 @@ login_access_and_logout() {
 
   # access /profile route
   echo "Accessing profile for $email:"
-  curl -XGET 'http://localhost:5000/profile' \
+  curl -s -XGET 'http://localhost:5000/profile' \
     -H "Authorization: Bearer $access_token" | jq
 
   # access /cart route
   echo "Accessing cart for $email:"
-  curl -XGET 'http://localhost:5000/cart' \
+  curl -s -XGET 'http://localhost:5000/cart' \
     -H "Authorization: Bearer $access_token" | jq
 
   # logout
@@ -36,7 +36,7 @@ login_access_and_logout() {
 }
 
 # create sample users
-create_user "email@example.com" "password"
+create_user "email123@example.com" "password"
 
 # login, access /profile, and logout for each created user
-login_access_and_logout "email@example.com" "password"
+#  login_access_and_logout "email@example.com" "password"

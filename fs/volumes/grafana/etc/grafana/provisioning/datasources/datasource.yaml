@@ -1,0 +1,11 @@
+datasources:
+  # Headers are not being propagated correctly.
+  # Setup a source similar to this manually.
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    url: http://tempo:3200
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    url: http://prometheus:9090
