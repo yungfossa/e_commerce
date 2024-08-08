@@ -40,8 +40,6 @@ six==1.16.0
 slugify
 sqlalchemy-serializer==1.4.22
 sqlalchemy-utils==0.41.2
-sqlalchemy_serializer
-sqlalchemy_utils
 typing_extensions==4.11.0
 tzlocal==5.2
 wrapt==1.16.0

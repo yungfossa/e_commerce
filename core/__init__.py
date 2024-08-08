@@ -1,19 +1,13 @@
-import os
 from flask import Flask
 from .extensions import bcrypt, db, jwt_manager, cors, scheduler, email_manager
 from .config import app_config
 from datetime import datetime
 from .models import ProductCategory, Admin, UserType as UserType
 from prometheus_flask_exporter import PrometheusMetrics
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.resources import Resource
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-import logging
+from .instrumentation import build_instrumentation
 
 import yaml
 
@@ -22,30 +16,12 @@ with open("data/init.yaml") as f:
     categories = init_data.get("categories", [])
     admin = init_data.get("admin", [])
 
-AGENT_HOSTNAME = os.getenv("AGENT_HOSTNAME", "127.0.0.1")
-AGENT_PORT = int(os.getenv("AGENT_PORT", "4317"))
-
-
-class SpanFormatter(logging.Formatter):
-    def format(self, record):
-        trace_id = trace.get_current_span().get_span_context().trace_id
-        if trace_id == 0:
-            record.trace_id = None
-        else:
-            record.trace_id = "{trace:032x}".format(trace=trace_id)
-        return super().format(record)
-
-
-resource = Resource(attributes={"service.name": "ss-backend"})
-
-trace.set_tracer_provider(TracerProvider(resource=resource))
-otlp_exporter = OTLPSpanExporter(
-    endpoint=f"{AGENT_HOSTNAME}:{AGENT_PORT}", insecure=True
-)
-trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(otlp_exporter))
-
 
 def create_app(config_name):
+    build_instrumentation(
+        app_config[config_name].AGENT_HOSTNAME, app_config[config_name].AGENT_PORT
+    )
+
     app = Flask(__name__)
     metrics = PrometheusMetrics.for_app_factory()
 
