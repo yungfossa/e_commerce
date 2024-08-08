@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   postgres:
     container_name: postgres
@@ -16,5 +14,46 @@ services:
       - POSTGRES_USER=deadbeef
       - POSTGRES_DB=deadbeef
 
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    container_name: grafana
+    hostname: grafana
+    volumes:
+      - ${PWD}/fs/volumes/grafana/etc/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+      - tempo
+    profiles:
+      - debug
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    volumes:
+      - ${PWD}/fs/volumes/prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      - '--storage.tsdb.path=/prometheus'
+    profiles:
+      - debug
+
+  tempo:
+    image: grafana/tempo:${TEMPO_VERSION}
+    command: [ "-config.file=/etc/tempo/config.yaml" ]
+    volumes:
+      - ${PWD}/fs/volumes/tempo/config.yaml:/etc/tempo/config.yaml
+      - tempo_data:/tmp
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    profiles:
+      - debug
+
 volumes:
   postgres_data:
+  grafana_data: {}
+  prometheus_data: {}
+  tempo_data: {}

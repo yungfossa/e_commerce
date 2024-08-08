@@ -3,6 +3,12 @@ from .extensions import bcrypt, db, jwt_manager, cors, scheduler, email_manager
 from .config import app_config
 from datetime import datetime
 from .models import ProductCategory, Admin, UserType as UserType
+from prometheus_flask_exporter import PrometheusMetrics
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from .instrumentation import build_instrumentation
+
 import yaml
 
 with open("data/init.yaml") as f:
@@ -12,11 +18,20 @@ with open("data/init.yaml") as f:
 
 
 def create_app(config_name):
+    build_instrumentation(
+        app_config[config_name].AGENT_HOSTNAME, app_config[config_name].AGENT_PORT
+    )
+
     app = Flask(__name__)
+    metrics = PrometheusMetrics.for_app_factory()
+
+    FlaskInstrumentor().instrument_app(app)
+    RequestsInstrumentor().instrument()
 
     app.config.from_object(app_config[config_name])
     app.config.from_pyfile("config.py")
 
+    metrics.init_app(app)
     cors.init_app(app)
     bcrypt.init_app(app)
     jwt_manager.init_app(app)
@@ -34,6 +49,8 @@ def create_app(config_name):
     with app.app_context():
         db.drop_all()
         db.create_all()
+
+        SQLAlchemyInstrumentor().instrument(engine=db.engine)
 
         for c in categories:
             ProductCategory.create(title=c)

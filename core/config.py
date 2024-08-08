@@ -6,6 +6,9 @@ load_dotenv()
 
 
 class Config(object):
+    AGENT_HOSTNAME = os.getenv("AGENT_HOSTNAME", "127.0.0.1")
+    AGENT_PORT = int(os.getenv("AGENT_PORT", "4317"))
+
     TESTING = False
     DEBUG = False
     SECRET_KEY = os.getenv("SECRET_KEY")
