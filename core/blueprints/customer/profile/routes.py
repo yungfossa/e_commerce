@@ -1,24 +1,24 @@
+from datetime import datetime, timedelta
+
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow.validate import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
-from datetime import datetime, timedelta
-
 from core import db
 from core.blueprints.errors.handlers import (
-    not_found,
     bad_request,
-    internal_server_error,
     handle_exception,
+    internal_server_error,
+    not_found,
 )
 from core.blueprints.utils import required_user_type, success_response
-from core.models import User, DeleteRequest, Customer, ListingReview
+from core.models import Customer, DeleteRequest, ListingReview, User
 from core.validators.customer.customer_review import (
     EditCustomerReviewSchema,
     ReviewFilterSchema,
 )
-from core.validators.user_profile import EditProfileSchema, DeleteProfileSchema
+from core.validators.user_profile import DeleteProfileSchema, EditProfileSchema
 
 customer_profile_bp = Blueprint("customer_profile", __name__)
 

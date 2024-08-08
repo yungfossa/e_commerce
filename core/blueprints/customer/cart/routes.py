@@ -5,10 +5,10 @@ from marshmallow import ValidationError
 from core import db
 from core.blueprints.errors.handlers import bad_request
 from core.blueprints.utils import required_user_type, success_response
-from core.models import CartEntry, MVProductCategory, Listing, Seller
+from core.models import CartEntry, Listing, MVProductCategory, Seller
 from core.validators.customer.customer_cart import (
-    UpsertCartSchema,
     RemoveFromCartSchema,
+    UpsertCartSchema,
 )
 
 customer_cart_bp = Blueprint("customer_cart", __name__)

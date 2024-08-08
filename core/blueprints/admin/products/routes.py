@@ -1,10 +1,10 @@
 from flask import Blueprint, request
-from sqlalchemy.exc import IntegrityError
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from core.blueprints.errors.handlers import bad_request
 from core.blueprints.utils import required_user_type, success_response
-from core.models import ProductCategory, Product
+from core.models import Product, ProductCategory
 from core.validators.admin.admin_products import AddProductSchema, CategorySchema
 
 admin_products_bp = Blueprint("admin_products", __name__)

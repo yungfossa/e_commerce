@@ -1,6 +1,6 @@
-from marshmallow import Schema, fields, validates, post_load
-from marshmallow.validate import ValidationError
 import phonenumbers
+from marshmallow import Schema, fields, post_load, validates
+from marshmallow.validate import ValidationError
 
 
 class EditProfileSchema(Schema):

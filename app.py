@@ -1,7 +1,8 @@
 import os
 
-from core import create_app
 from dotenv import load_dotenv
+
+from core import create_app
 
 load_dotenv()
 
