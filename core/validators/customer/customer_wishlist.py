@@ -1,7 +1,7 @@
-from marshmallow import Schema, fields, post_load, validates, ValidationError
+from marshmallow import Schema, ValidationError, fields, post_load, validates
 from marshmallow.validate import Length
 
-from core.models import Listing, WishListEntry, WishList
+from core.models import Listing, WishList, WishListEntry
 
 
 class BaseSchema(Schema):

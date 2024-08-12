@@ -1,8 +1,9 @@
-from marshmallow import fields, post_load, validates, ValidationError, Schema
-
 from decimal import Decimal
-from core.validators.customer.customer_wishlist import BaseSchema
+
+from marshmallow import Schema, ValidationError, fields, post_load, validates
+
 from core.models import Product, ProductState
+from core.validators.customer.customer_wishlist import BaseSchema
 
 
 def validate_quantity(value: int):

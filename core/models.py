@@ -1,33 +1,33 @@
 import enum
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
+from time import time
+from typing import List, Optional
 
+import jwt
+from flask import current_app
 from sqlalchemy import (
+    CHAR,
     Boolean,
-    ForeignKey,
-    Table,
     Column,
-    func,
-    String,
     Date,
     DateTime,
-    Numeric,
-    Text,
     Enum,
-    select,
+    ForeignKey,
+    Numeric,
+    String,
+    Table,
+    Text,
     TypeDecorator,
-    CHAR,
+    func,
+    select,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from time import time
-from flask import current_app
-import jwt
+from sqlalchemy_utils import create_materialized_view
+from sqlalchemy_utils.compat import _select_args
 
 from . import db
 from .base_models import BaseModel
-from sqlalchemy_utils import create_materialized_view
-from sqlalchemy_utils.compat import _select_args
 
 
 class ULID(TypeDecorator):

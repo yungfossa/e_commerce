@@ -1,13 +1,14 @@
+import re
 from functools import wraps
 from typing import List
-from flask import jsonify, current_app, url_for, render_template
+
+from flask import current_app, jsonify, render_template, url_for
 from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
-from .errors.handlers import unauthorized
 from flask_mail import Message
-import re
 
 from .. import email_manager
 from ..models import User
+from .errors.handlers import unauthorized
 
 # RFC 5322 compliant regexp used for email validation
 email_pattern = re.compile(

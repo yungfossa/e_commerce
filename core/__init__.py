@@ -1,15 +1,17 @@
-from flask import Flask
-from .extensions import bcrypt, db, jwt_manager, cors, scheduler, email_manager
-from .config import app_config
 from datetime import datetime
-from .models import ProductCategory, Admin, UserType as UserType
-from prometheus_flask_exporter import PrometheusMetrics
+
+import yaml
+from flask import Flask
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-from .instrumentation import build_instrumentation
+from prometheus_flask_exporter import PrometheusMetrics
 
-import yaml
+from .config import app_config
+from .extensions import bcrypt, cors, db, email_manager, jwt_manager, scheduler
+from .instrumentation import build_instrumentation
+from .models import Admin, ProductCategory
+from .models import UserType as UserType
 
 with open("data/init.yaml") as f:
     init_data = yaml.safe_load(f)
@@ -40,8 +42,10 @@ def create_app(config_name):
     scheduler.init_app(app)
 
     from .scheduler_jobs import (
-        cleanup_tokens_blocklist as cleanup_tokens_blocklist,
         cleanup_delete_requests as cleanup_delete_requests,
+    )
+    from .scheduler_jobs import (
+        cleanup_tokens_blocklist as cleanup_tokens_blocklist,
     )
 
     scheduler.start()

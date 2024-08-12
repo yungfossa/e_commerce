@@ -1,6 +1,6 @@
 import re
 
-from marshmallow import Schema, fields, ValidationError, post_load
+from marshmallow import Schema, ValidationError, fields, post_load
 
 email_format = re.compile(
     r"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|"

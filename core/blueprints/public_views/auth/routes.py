@@ -1,28 +1,30 @@
-from core import bcrypt
 from datetime import datetime, timezone
+
 from flask import Blueprint, request
 from flask_jwt_extended import (
     create_access_token,
     get_jwt,
-    jwt_required,
     get_jwt_identity,
+    jwt_required,
 )
+from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
+
+from core import bcrypt
+from core.blueprints.errors.handlers import bad_request, unauthorized
 from core.blueprints.utils import (
-    success_response,
     send_confirmation_email,
     send_password_reset_email,
+    success_response,
 )
-from sqlalchemy.exc import IntegrityError
-from core.blueprints.errors.handlers import bad_request, unauthorized
+from core.extensions import db, jwt_manager
+from core.models import Cart, Customer, DeleteRequest, TokenBlocklist, User, WishList
 from core.validators.auth.user_auth import (
-    RegisterCredentialsSchema,
     LoginCredentialsSchema,
-    ResetPasswordSchema,
+    RegisterCredentialsSchema,
     ResetPasswordRequestSchema,
+    ResetPasswordSchema,
 )
-from core.models import TokenBlocklist, User, Cart, Customer, WishList, DeleteRequest
-from core.extensions import jwt_manager, db
-from marshmallow import ValidationError
 
 auth_bp = Blueprint("auth", __name__)
 

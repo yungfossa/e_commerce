@@ -1,9 +1,9 @@
+from datetime import datetime, timedelta
+
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
-
-from datetime import datetime, timedelta
 
 from core import db
 from core.blueprints.errors.handlers import (
@@ -12,8 +12,8 @@ from core.blueprints.errors.handlers import (
     internal_server_error,
 )
 from core.blueprints.utils import required_user_type, success_response
-from core.models import User, Seller, DeleteRequest
-from core.validators.user_profile import EditSellerProfileSchema, DeleteProfileSchema
+from core.models import DeleteRequest, Seller, User
+from core.validators.user_profile import DeleteProfileSchema, EditSellerProfileSchema
 
 seller_profile_bp = Blueprint("seller_profile", __name__)
 

@@ -1,5 +1,6 @@
-from .extensions import db
 from sqlalchemy_serializer import SerializerMixin
+
+from .extensions import db
 
 
 class CRUDMixin(object):

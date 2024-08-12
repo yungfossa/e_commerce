@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from core import scheduler
-from core.models import TokenBlocklist, DeleteRequest, User
+from core.models import DeleteRequest, TokenBlocklist, User
 
 
 # test: ('interval', id='jwt_tokens_table_cleanup', seconds=60)

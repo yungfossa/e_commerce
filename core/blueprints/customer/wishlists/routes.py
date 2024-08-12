@@ -6,10 +6,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from core import db
 from core.blueprints.errors.handlers import bad_request
 from core.blueprints.utils import required_user_type, success_response
-from core.models import Listing, WishList, WishListEntry, MVProductCategory, Seller
+from core.models import Listing, MVProductCategory, Seller, WishList, WishListEntry
 from core.validators.customer.customer_wishlist import (
-    RemoveFromWishlistSchema,
     AddToWishlistSchema,
+    RemoveFromWishlistSchema,
     UpsertWishlistSchema,
     WishlistsDetailsSchema,
 )
