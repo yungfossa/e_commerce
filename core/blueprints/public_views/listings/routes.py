@@ -6,12 +6,27 @@ from sqlalchemy.orm import joinedload
 from core import db
 from core.blueprints.errors.handlers import bad_request, handle_exception, not_found
 from core.blueprints.utils import success_response
-from core.models import Listing, ListingReview, MVProductCategory, Product
+from core.models import (
+    Listing,
+    ListingReview,
+    MVProductCategory,
+    Product,
+    ProductCategory,
+)
 from core.validators.public_views.public_products import ProductsFilterSchema
 
 listings_bp = Blueprint("listings", __name__)
 
 validate_products_filters = ProductsFilterSchema()
+
+
+@listings_bp.route("/categories", methods=["GET"])
+def get_categories():
+    product_categories = ProductCategory.query.all()
+
+    return success_response(
+        message="Product categories:", data=[c.to_dict() for c in product_categories]
+    )
 
 
 @listings_bp.route("/products", methods=["POST"])
