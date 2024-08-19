@@ -4,7 +4,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from core import db
-from core.blueprints.errors.handlers import bad_request, handle_exception, not_found
+from core.blueprints.errors.handlers import (
+    bad_request,
+    handle_exception,
+    internal_server_error,
+    not_found,
+)
 from core.blueprints.utils import success_response
 from core.models import (
     Listing,
@@ -13,11 +18,13 @@ from core.models import (
     Product,
     ProductCategory,
 )
+from core.validators.customer.customer_review import ReviewFilterSchema
 from core.validators.public_views.public_products import ProductsFilterSchema
 
 listings_bp = Blueprint("listings", __name__)
 
 validate_products_filters = ProductsFilterSchema()
+validate_review_filters = ReviewFilterSchema()
 
 
 @listings_bp.route("/categories", methods=["GET"])
@@ -27,6 +34,60 @@ def get_categories():
     return success_response(
         message="Product categories:", data=[c.to_dict() for c in product_categories]
     )
+
+
+@listings_bp.route("/listings/<string:listing_ulid>/reviews", methods=["POST"])
+def get_listings_reviews(listing_ulid):
+    try:
+        query_params = validate_review_filters.load(request.get_json())
+
+        order_by = query_params.get("order_by")
+        limit = query_params.get("limit")
+        offset = query_params.get("offset")
+
+        query = ListingReview.query.filter_by(listing_id=listing_ulid)
+
+        if order_by == "newest":
+            query = query.order_by(ListingReview.modified_at.desc())
+        elif order_by == "oldest":
+            query = query.order_by(ListingReview.modified_at.asc())
+        elif order_by == "highest":
+            query = query.order_by(ListingReview.rating.desc())
+        elif order_by == "lowest":
+            query = query.order_by(ListingReview.rating.desc())
+
+        reviews = query.limit(limit).offset(offset).all()
+
+        review_list = [
+            {
+                "title": review.title,
+                "description": review.description,
+                "rating": review.rating,
+                "modified_at": review.modified_at,
+            }
+            for review in reviews
+        ]
+
+        total_reviews = query.count()
+
+        response = {
+            "total_reviews": total_reviews,
+            "limit": limit,
+            "offset": offset,
+            "reviews": review_list,
+        }
+
+        return success_response(message="Reviews", data=response)
+    except ValidationError as verr:
+        return bad_request(verr.messages)
+    except SQLAlchemyError:
+        db.session.rollback()
+        return handle_exception(
+            message="An error occurred while getting listing reviews"
+        )
+    except Exception:
+        db.session.rollback()
+        return internal_server_error()
 
 
 @listings_bp.route("/products", methods=["POST"])
