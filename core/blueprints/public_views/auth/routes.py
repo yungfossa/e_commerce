@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from flask import Blueprint, request
+from flask import Blueprint, current_app, request
 from flask_jwt_extended import (
     create_access_token,
     get_jwt,
@@ -36,6 +36,8 @@ reset_password_schema = ResetPasswordSchema()
 
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
+    config_name = current_app.config["NAME"]
+
     try:
         validated_data = register_credentials_schema.load(request.get_json())
 
@@ -64,13 +66,20 @@ def signup():
         customer_id=customer.id,
     )
 
-    send_confirmation_email(customer)
+    if config_name != "development":
+        send_confirmation_email(customer)
 
-    return success_response(
-        message="User created successfully. "
-        "Please check your email to confirm your account.",
-        status_code=201,
-    )
+        return success_response(
+            message="User created successfully. ",
+            data="Please check your email to confirm your account.",
+            status_code=201,
+        )
+    else:
+        return success_response(
+            message="User created successfully. ",
+            data={"verification_token": customer.get_account_verification_token()},
+            status_code=201,
+        )
 
 
 @auth_bp.route("/verify/<token>", methods=["GET"])

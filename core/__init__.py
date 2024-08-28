@@ -20,15 +20,17 @@ with open("data/init.yaml") as f:
 
 
 def create_app(config_name):
-    build_instrumentation(
-        app_config[config_name].AGENT_HOSTNAME, app_config[config_name].AGENT_PORT
-    )
+    if config_name == "production":
+        build_instrumentation(
+            app_config[config_name].AGENT_HOSTNAME, app_config[config_name].AGENT_PORT
+        )
 
     app = Flask(__name__)
     metrics = PrometheusMetrics.for_app_factory()
 
-    FlaskInstrumentor().instrument_app(app)
-    RequestsInstrumentor().instrument()
+    if config_name == "production":
+        FlaskInstrumentor().instrument_app(app)
+        RequestsInstrumentor().instrument()
 
     app.config.from_object(app_config[config_name])
     app.config.from_pyfile("config.py")

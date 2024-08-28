@@ -7,6 +7,8 @@ load_dotenv()
 
 
 class Config(object):
+    NAME: str = None
+
     AGENT_HOSTNAME = os.getenv("AGENT_HOSTNAME", "127.0.0.1")
     AGENT_PORT = int(os.getenv("AGENT_PORT", "4317"))
 
@@ -29,10 +31,12 @@ class Config(object):
 
 
 class ProductionConfig(Config):
-    pass
+    NAME = "production"
 
 
 class DevelopmentConfig(Config):
+    NAME = "development"
+
     DEBUG = True
     SCHEDULER_API_ENABLED: True
     SQLALCHEMY_ECHO = True
@@ -40,6 +44,8 @@ class DevelopmentConfig(Config):
 
 
 class TestingConfig(DevelopmentConfig):
+    NAME = "testing"
+
     TESTING = True
 
 
