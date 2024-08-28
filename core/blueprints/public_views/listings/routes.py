@@ -171,7 +171,7 @@ def get_product_listings_and_reviews(product_ulid):
 
 
 @listings_bp.route(
-    "/products/<string:product_ulid>/<string:listing_ulid", methods=["GET"]
+    "/products/<string:product_ulid>/<string:listing_ulid>", methods=["GET"]
 )
 def get_listing(product_ulid, listing_ulid):
     listing = (
