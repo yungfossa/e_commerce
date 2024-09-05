@@ -121,7 +121,8 @@ def login():
         removal_date = dr.to_be_removed_at.strftime("%B %d, %Y")
         return unauthorized(
             f"Your account has been disabled."
-            f"If no action is taken, it will be permanently removed on {removal_date}. "
+            f"If no action is taken, it will be permanently removed on {
+                removal_date}. "
             f"Please contact our support team for assistance or to reactivate your account."
         )
 

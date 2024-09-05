@@ -287,7 +287,9 @@ class Listing(BaseModel):
     quantity: Mapped[int]
     available: Mapped[bool] = mapped_column(default=False)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    product_state: Mapped[str] = mapped_column(Enum(ProductState))
+    product_state: Mapped[str] = mapped_column(
+        Enum(ProductState), default=ProductState.NEW
+    )
     purchase_count: Mapped[int] = mapped_column(default=0)
     view_count: Mapped[int] = mapped_column(default=0)
     seller_id: Mapped[str] = mapped_column(ULID, ForeignKey("sellers.id"))

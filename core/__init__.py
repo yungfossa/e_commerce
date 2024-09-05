@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import yaml
 from flask import Flask
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
@@ -10,13 +8,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 from .config import app_config
 from .extensions import bcrypt, cors, db, email_manager, jwt_manager, scheduler
 from .instrumentation import build_instrumentation
-from .models import Admin, ProductCategory
-from .models import UserType as UserType
-
-with open("data/init.yaml") as f:
-    init_data = yaml.safe_load(f)
-    categories = init_data.get("categories", [])
-    admin = init_data.get("admin", [])
+from .utils import init_db
 
 
 def create_app(config_name):
@@ -29,6 +21,8 @@ def create_app(config_name):
     metrics = PrometheusMetrics.for_app_factory()
 
     if config_name == "production":
+        SQLAlchemyInstrumentor().instrument(engine=db.engine)
+
         FlaskInstrumentor().instrument_app(app)
         RequestsInstrumentor().instrument()
 
@@ -53,26 +47,9 @@ def create_app(config_name):
     scheduler.start()
 
     with app.app_context():
-        db.drop_all()
-        db.create_all()
-
-        SQLAlchemyInstrumentor().instrument(engine=db.engine)
-
-        for c in categories:
-            ProductCategory.create(title=c)
-
-        for a in admin:
-            Admin.create(
-                email=a["email"],
-                name=a["name"],
-                surname=a["name"],
-                password=bcrypt.generate_password_hash(a["password"], 10).decode(
-                    "utf-8"
-                ),
-                birth_date=datetime.now(),
-                is_verified=True,
-                verified_on=datetime.now(),
-            )
+        with open("data/init.yaml") as f:
+            init_data = yaml.safe_load(f)
+        init_db(init_data)
 
     from .blueprints.errors import errors_bp
 

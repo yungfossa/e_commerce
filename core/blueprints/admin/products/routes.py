@@ -37,7 +37,7 @@ def create_product():
 
     name = validated_data.get("name").title()
     description = validated_data.get("description")
-    image_src = validated_data.get("image_sr")
+    image_src = validated_data.get("image_src")
     category = validated_data.get("category").title()
 
     c = ProductCategory.query.filter_by(title=category).first()
@@ -45,11 +45,15 @@ def create_product():
     if not c:
         return bad_request(message="Category not found")
 
-    Product.create(
+    p = Product.create(
         name=name, description=description, image_src=image_src, category_id=c.id
     )
 
-    return success_response(message="Product created successfully", status_code=201)
+    return success_response(
+        message="Product created successfully",
+        data={"product_id": p.id},
+        status_code=201,
+    )
 
 
 # TODO require admin access, first implement integration test authentication in bash

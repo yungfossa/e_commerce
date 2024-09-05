@@ -3,7 +3,12 @@ categories:
   - Food
   - Clothes
 
-admin:
+admins:
   - email: admin@shopsphere.com
     name: admin
+    password: changeme
+
+sellers:
+  - email: sales@amazon.com
+    name: Amazon Warehouse
     password: changeme

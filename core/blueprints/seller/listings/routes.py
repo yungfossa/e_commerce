@@ -102,12 +102,12 @@ def create_listing():
     quantity = validated_data.get("quantity")
     price = validated_data.get("price")
     product_state = validated_data.get("product_state")
-    product_id = validated_data.get("product_id")
+    product_id = request.get_json().get("id")
     available = quantity != 0
 
     seller_id = get_jwt_identity()
 
-    Listing.create(
+    listing = Listing.create(
         quantity=quantity,
         price=price,
         available=available,
@@ -116,7 +116,11 @@ def create_listing():
         product_id=product_id,
     )
 
-    return success_response(message="Listing added successfully")
+    return success_response(
+        message="Listing added successfully",
+        data={"listing_id": listing.id},
+        status_code=201,
+    )
 
 
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["GET"])

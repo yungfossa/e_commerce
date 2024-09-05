@@ -13,7 +13,7 @@ class CategorySchema(Schema):
         }
 
 
-class AddProductSchema(CategorySchema):
+class AddProductSchema(Schema):
     name = fields.String(
         required=True, error_messages={"required": "Missing product name"}
     )
@@ -23,6 +23,9 @@ class AddProductSchema(CategorySchema):
     image_src = fields.String(
         required=True, error_messages={"required": "Missing product image"}
     )
+    category_title = fields.String(
+        required=True, error_messages={"required": "Missing product category title"}
+    )
 
     @post_load
     def get_validated_product(self, data, **kwargs):
@@ -30,5 +33,5 @@ class AddProductSchema(CategorySchema):
             "name": data.get("name"),
             "description": data.get("description"),
             "image_src": data.get("image_src"),
-            "category": data.get("category"),
+            "category": data.get("category_title"),
         }

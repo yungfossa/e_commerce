@@ -92,6 +92,15 @@ def get_listings_reviews(listing_ulid):
 
 @listings_bp.route("/products", methods=["POST"])
 def get_products():
+    def to_dict(p: Product) -> dict:
+        return {
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "image_src": p.image_src,
+            "category": p.category.title,
+        }
+
     try:
         query_params = validate_products_filters.load(request.get_json())
 
@@ -104,9 +113,7 @@ def get_products():
 
         products = query.limit(limit).offset(offset).all()
 
-        return success_response(
-            message="products", data=[p.to_dict() for p in products]
-        )
+        return success_response(message="products", data=[to_dict(p) for p in products])
 
     except ValidationError as verr:
         return bad_request(verr.messages)
@@ -120,7 +127,7 @@ def get_products():
 # Todo add filters to the following route ?
 @listings_bp.route("/products/<string:product_ulid>", methods=["GET"])
 def get_product_listings_and_reviews(product_ulid):
-    product = MVProductCategory.query.filter_by(product_id=product_ulid).first()
+    product = Product.query.filter_by(id=product_ulid).first()
 
     if not product:
         return not_found("Product not found")
@@ -137,10 +144,10 @@ def get_product_listings_and_reviews(product_ulid):
     )
 
     product_data = {
-        "name": product.product_name,
-        "description": product.product_description,
-        "image_src": product.product_img,
-        "category": {"name": product.product_category},
+        "name": product.name,
+        "description": product.description,
+        "image_src": product.image_src,
+        "category": {"name": product.category.title},
         "listings": [
             {
                 "price": float(listing.price),
