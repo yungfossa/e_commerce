@@ -4,7 +4,7 @@ import time
 from admin import Admin
 from seller import Seller
 from user import User
-from utils import assert_eq, before, test
+from utils import after, assert_eq, before, test
 
 
 def reset():
@@ -13,6 +13,7 @@ def reset():
 
 @test("it should create a user")
 @before(reset)
+@after(reset)
 def create_users():
     u = User.signup(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
     (profile, status_code) = u.profile()
@@ -29,6 +30,7 @@ def create_users():
 
 @test("when creating a fresh account, the cart should be empty")
 @before(reset)
+@after(reset)
 def empty_cart():
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
     (cart, status_code) = u.cart()
@@ -39,6 +41,7 @@ def empty_cart():
 
 @test("it should properly create a new category")
 @before(reset)
+@after(reset)
 def create_category():
     admin = Admin.login("admin@shopsphere.com", "changeme")
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
@@ -58,6 +61,7 @@ def create_category():
 
 @test("an admin should be able to create a new product")
 @before(reset)
+@after(reset)
 def create_product():
     admin = Admin.login("admin@shopsphere.com", "changeme")
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
@@ -68,7 +72,10 @@ def create_product():
     assert_eq(products, None)
 
     (product, status_code) = admin.add_product(
-        "iPhone 15", "A phone", "http://example.com/image.png", "Tech"
+        "iPhone 15",
+        "A phone",
+        "https://upload.wikimedia.org/wikipedia/commons/7/70/Example.png",
+        "Tech",
     )
     assert_eq(status_code, 201)
 
@@ -82,13 +89,17 @@ def create_product():
     "a seller should be able to add a listing for a product, and it should be visible to a user"
 )
 @before(reset)
+@after(reset)
 def create_listing():
     admin = Admin.login("admin@shopsphere.com", "changeme")
     seller = Seller.login("sales@amazon.com", "changeme")
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
 
     (product, status_code) = admin.add_product(
-        "iPhone 15", "A phone", "http://example.com/image.png", "Tech"
+        "iPhone 15",
+        "A phone",
+        "https://upload.wikimedia.org/wikipedia/commons/7/70/Example.png",
+        "Tech",
     )
     assert_eq(status_code, 201)
 

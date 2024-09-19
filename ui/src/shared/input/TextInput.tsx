@@ -34,7 +34,6 @@ interface Props {
 	placeholder: string;
 	password?: boolean;
 	width?: number;
-	valid: bool;
 	setInput?: (s: string) => void;
 	icon?: any;
 }
@@ -43,7 +42,6 @@ export default function TextInput({
 	placeholder,
 	password,
 	width,
-	valid,
 	setInput,
 	icon,
 }: Props) {

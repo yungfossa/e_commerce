@@ -6,6 +6,7 @@ export const authenticate = createAsyncThunk(
 		{ email, password }: { email: string; password: string },
 		{ rejectWithValue },
 	): Promise<string> => {
+		console.log("requested");
 		return await fetch("http://localhost:5000/login", {
 			method: "POST",
 			headers: {
@@ -21,7 +22,7 @@ export const authenticate = createAsyncThunk(
 				}
 				return r.json();
 			})
-			.then((r) => r.access_token)
+			.then((r) => r.data.access_token)
 			.catch(async (e) => {
 				return rejectWithValue(e);
 			});
@@ -34,7 +35,7 @@ export const userSlice = createSlice({
 	name: "user",
 	initialState: {
 		access_token: "",
-		status: "unknown",
+		status: "unknown" as Status,
 	},
 	reducers: {},
 	extraReducers: (builder) => {
@@ -42,8 +43,8 @@ export const userSlice = createSlice({
 			state.status = "pending";
 		});
 		builder.addCase(authenticate.fulfilled, (state, action) => {
-			state.access_token = action.payload;
 			state.status = "success";
+			state.access_token = action.payload;
 		});
 		builder.addCase(authenticate.rejected, (state, action) => {
 			state.status = "failed";
