@@ -27,6 +27,11 @@ const Section = styled.div<{ grow?: boolean }>`
 	padding: 0 1rem;
 `;
 
+const Title = styled.div`
+	font-weight: bold;
+	font-size: 25px;
+`;
+
 export default function Header() {
 	const access_token = useAppSelector((s) => s.user.access_token);
 	const [profile, setProfile] = useState<any>(null);
@@ -49,24 +54,31 @@ export default function Header() {
 
 	return (
 		<Wrapper>
-			<Section>
-				<FontAwesomeIcon
-					style={{ "margin-right": "0.75rem" }}
-					size="m"
-					icon={faGlobe}
-				/>
-				Shop Sphere
-			</Section>
+			<Link to="/" style={{
+				color: "white",
+				textDecoration: "none",
+			}}>
+				< Section >
+					<FontAwesomeIcon
+						style={{ "margin-right": "0.75rem" }}
+						size="2x"
+						icon={faGlobe}
+					/>
+					<Title>Shop Sphere</Title>
+				</Section>
+			</Link >
 			<Section grow={true}>
 				<TextInput icon={faSearch} placeholder="Search..." />
 			</Section>
-			{profile ? (
-				<Section>Welcome back {profile.name}</Section>
-			) : (
-				<Section>
-					<Link to="/login">Sign In</Link> or <Link to="/signup">Sign Up</Link>
-				</Section>
-			)}
-		</Wrapper>
+			{
+				profile ? (
+					<Section>Welcome back {profile.name}</Section>
+				) : (
+					<Section>
+						<Link to="/login">Sign In</Link> or <Link to="/signup">Sign Up</Link>
+					</Section>
+				)
+			}
+		</Wrapper >
 	);
 }

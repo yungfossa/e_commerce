@@ -1,18 +1,54 @@
-import { React, useEffect, useState } from "react";
+import { React, useEffect, useState, useContext } from "react";
 import styled from "styled-components";
 import { useAppDispatch, useAppSelector } from "../../hooks.ts";
 import { useParams } from "react-router-dom";
 import Header from "../../shared/Header.tsx";
 import { Link } from "react-router-dom";
+import AlertContext from "../../components/Alert.tsx";
+import { useNavigate } from "react-router-dom";
 
 const ListingsWrapper = styled.div`
+	border: 1px black solid;
+`;
+
+const ListingWrapper = styled.div`
+	border: 1px black solid;
+	flex: 50%;
+`;
+
+const ProductWrapper = styled.div`
+	border: 1px black solid;
+	padding: 100px;
+	flex: 50%;
+`;
+
+const Wrapper = styled.div`
+	border: 1px black solid;
+	display: flex;
+	padding: 100px;
+`;
+
+const Title = styled.div`
+	font-weight: bold;
+	font-size: 50px;
+`;
+
+const Category = styled.div`
+	color: gray;
+`;
+
+const Store = styled.div`
 `;
 
 export default function ProductsPage() {
+	const navigate = useNavigate();
+	const { showAlert } = useContext(AlertContext);
+
 	let { id } = useParams();
 
 	const access_token = useAppSelector((s) => s.user.access_token);
 	const [product, setProduct] = useState<any>(null);
+	const [listing, setListing] = useState<any>(null);
 
 	useEffect(() => {
 		if (access_token === "") {
@@ -27,6 +63,11 @@ export default function ProductsPage() {
 			.then((r) => r.json())
 			.then((r) => {
 				setProduct(r.data);
+				setListing(r.data.listings[0] || null);
+			})
+			.catch((e) => {
+				showAlert("An error occured", "error");
+				navigate("/");
 			});
 	}, [access_token]);
 
@@ -38,24 +79,35 @@ export default function ProductsPage() {
 		<>
 			<Header />
 
-			<p>{product.name}</p>
-			<p>{product.category.name}</p>
-			<img height="250px" width="250px" src={product.image_src} />
+			<Wrapper>
+				<ProductWrapper>
+					<Title>{product.name}</Title>
+					<Category>{product.category.name}</Category>
+					<Store>
+						{listing.seller.name && <Link to={`/seller/${listing.seller.name}`}>View {listing.seller.name} store</Link>}
+					</Store>
+					<img height="250px" width="250px" src={product.image_src} />
+					{listing?.price || "Item not available, sorry bud."}
+				</ProductWrapper>
 
-			<ul>
-				{product &&
-					product.listings.map((l) => {
-						return (
-							<ListingsWrapper>
-								<Link to={`/products/${id}/${l.id}`}>
-									<p>{l.seller.name}</p>
-									<p>only {l.quantity} left</p>
-									<p>{l.price} dolla</p>
-								</Link>
-							</ListingsWrapper>
-						);
-					})}
-			</ul>
+				<ListingWrapper>
+
+					<ul>
+						{product &&
+							product.listings.map((l) => {
+								return (
+									<ListingsWrapper>
+										<Link to={`/products/${id}/${l.id}`}>
+											<p>{l.seller.name}</p>
+											<p>only {l.quantity} left</p>
+											<p>{l.price} dolla</p>
+										</Link>
+									</ListingsWrapper>
+								);
+							})}
+					</ul>
+				</ListingWrapper>
+			</Wrapper>
 		</>
 	);
 }

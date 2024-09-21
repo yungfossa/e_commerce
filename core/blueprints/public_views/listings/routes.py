@@ -147,14 +147,19 @@ def get_product_listings_and_reviews(product_ulid):
         "name": product.name,
         "description": product.description,
         "image_src": product.image_src,
-        "category": {"name": product.category.title},
+        "category": {
+            "name": product.category.title,
+        },
         "listings": [
             {
                 "price": float(listing.price),
                 "quantity": listing.quantity,
                 "available": listing.available,
                 "product_state": listing.product_state.value,
-                "seller": {"name": listing.seller.name},
+                "seller": {
+                    "id": listing.seller.id,
+                    "name": listing.seller.name,
+                },
                 "reviews": [
                     {
                         "title": review.title,
@@ -162,7 +167,8 @@ def get_product_listings_and_reviews(product_ulid):
                         "rating": review.rating.value,
                         "created_at": review.created_at.isoformat(),
                         "customer": {
-                            "name": review.customer.name  # Assumendo che Customer abbia un campo 'name'
+                            "id": review.customer.id,
+                            "name": review.customer.name,
                         },
                     }
                     for review in listing.review
