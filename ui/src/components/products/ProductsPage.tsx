@@ -91,7 +91,6 @@ export default function ProductsPage() {
 				</ProductWrapper>
 
 				<ListingWrapper>
-
 					<ul>
 						{product &&
 							product.listings.map((l) => {
@@ -108,6 +107,23 @@ export default function ProductsPage() {
 					</ul>
 				</ListingWrapper>
 			</Wrapper>
+
+			Reviews:
+			<ul>
+				{product &&
+					product.listings.map((p: any) => {
+						return p.reviews.map((l: any) => {
+							return (
+								<ListingsWrapper>
+									<p>{l.title}</p>
+									<p>{l.description}</p>
+									<p>{l.rating}</p>
+								</ListingsWrapper>
+							);
+						})
+
+					})}
+			</ul>
 		</>
 	);
 }

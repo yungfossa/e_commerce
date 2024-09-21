@@ -13,7 +13,7 @@ from core.blueprints.errors.handlers import (
     not_found,
 )
 from core.blueprints.utils import required_user_type, success_response
-from core.models import Customer, DeleteRequest, ListingReview, User
+from core.models import Customer, DeleteRequest, ListingReview, ReviewRate, User
 from core.validators.customer.customer_review import (
     EditCustomerReviewSchema,
     ReviewFilterSchema,
@@ -160,6 +160,41 @@ def get_reviews():
             message="An error occurred while getting customer reviews"
         )
     except Exception:
+        db.session.rollback()
+        return internal_server_error()
+
+
+@customer_profile_bp.route(
+    "/products/<string:product_ulid>/<string:listing_ulid>/review", methods=["POST"]
+)
+@required_user_type(["customer"])
+def create_review(product_ulid, listing_ulid):
+    customer_id = get_jwt_identity()
+
+    try:
+        validated_data = validate_edit_review.load(request.get_json())
+
+        ListingReview.create(
+            customer_id=customer_id,
+            # rating=validated_data["rating"],
+            # this should most likely be a bound integer
+            rating=ReviewRate.FIVE,
+            title=validated_data["title"],
+            description=validated_data["description"],
+            listing_id=listing_ulid,
+        )
+
+        return success_response(message="Review created successfully")
+
+    except ValidationError as verr:
+        print("Here", verr)
+        return bad_request(verr.messages)
+    except SQLAlchemyError as e:
+        print("There", e)
+        db.session.rollback()
+        return handle_exception(message="An error occurred while createing a review")
+    except Exception as e:
+        print(e)
         db.session.rollback()
         return internal_server_error()
 

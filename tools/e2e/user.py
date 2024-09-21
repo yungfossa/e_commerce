@@ -74,6 +74,30 @@ class User:
             r.json()["data"]["access_token"],
         )
 
+    @staticmethod
+    @logged()
+    def force_login(email: str, password: str) -> Self:
+        s = requests.Session()
+
+        r = s.post(
+            f"{PREFIX}/login",
+            json={
+                "email": email,
+                "password": password,
+            },
+        )
+
+        assert_eq(r.status_code, 200)
+
+        return User(
+            email,
+            password,
+            None,
+            None,
+            None,
+            r.json()["data"]["access_token"],
+        )
+
     @logged()
     def profile(self) -> (any, int):
         s = requests.Session()
@@ -123,11 +147,30 @@ class User:
     def get_listings(self, product_id: str) -> (any, int):
         s = requests.Session()
 
-        print(f"{PREFIX}/products/{product_id}")
         r = s.get(
             f"{PREFIX}/products/{product_id}",
             headers={"Authorization": f"Bearer {self.access_token}"},
         )
+
+        return r.json().get("data"), r.status_code
+
+    @logged()
+    def create_review(
+        self,
+        product_id: str,
+        listing_id: str,
+        title: str,
+        description: str,
+        rating: int,
+    ) -> (any, int):
+        s = requests.Session()
+
+        r = s.post(
+            f"{PREFIX}/products/{product_id}/{listing_id}/review",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+            json={"title": title, "description": description, "rating": rating},
+        )
+
         print(r.json())
 
         return r.json().get("data"), r.status_code

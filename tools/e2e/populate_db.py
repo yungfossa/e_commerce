@@ -1,5 +1,6 @@
 from admin import Admin
 from seller import Seller
+from user import User
 
 admin = Admin.login("admin@shopsphere.com", "changeme")
 admin.reset_db()
@@ -36,6 +37,11 @@ for name, description, image, category, listing in products:
     (count, price, quality) = listing
 
     (product, _) = admin.add_product(name, description, image, category)
-
     product_id = product["product_id"]
-    seller.create_listing(product_id, count, price, quality)
+
+    (listing, _) = seller.create_listing(product_id, count, price, quality)
+    listing_id = listing["listing_id"]
+
+customer = User.force_login("foo@gmail.com", "Password1?").create_review(
+    product_id, listing_id, "Not great", "Not terrible", "5"
+)
