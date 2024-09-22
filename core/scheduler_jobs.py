@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from core import scheduler
 from core.models import DeleteRequest, TokenBlocklist, User
@@ -8,7 +8,7 @@ from core.models import DeleteRequest, TokenBlocklist, User
 @scheduler.task("cron", id="jwt_tokens_table_cleanup", hour=0)
 def cleanup_tokens_blocklist():
     with scheduler.app.app_context():
-        current_time = datetime.utcnow()
+        current_time = datetime.now(UTC)
         expired_tokens = TokenBlocklist.query.filter(
             TokenBlocklist.expired_at <= current_time
         ).all()
@@ -21,7 +21,7 @@ def cleanup_tokens_blocklist():
 @scheduler.task("cron", id="delete_requests_cleanup", hour=0)
 def cleanup_delete_requests():
     with scheduler.app.app_context():
-        current_time = datetime.utcnow()
+        current_time = datetime.now(UTC)
 
         expired_delete_request = DeleteRequest.query.filter(
             DeleteRequest.to_be_removed_at <= current_time

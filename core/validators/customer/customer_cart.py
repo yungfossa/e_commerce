@@ -17,15 +17,23 @@ class AddToCartSchema(BaseSchema):
 
 
 class RemoveFromCartSchema(BaseSchema):
-    @validates("id")
-    def validate_cart_item(self, value: str):
-        cart_item = CartEntry.query.filter_by(id=value).first()
-        if cart_item is None:
-            raise ValidationError("Invalid cart_entry_id: CartEntry does not exist.")
+    cart_item_ids = fields.List(fields.String(), required=True)
+
+    @validates("cart_item_ids")
+    def validate_cart_items(self, value):
+        if not value:
+            raise ValidationError("At least one cart_item_id must be provided.")
+
+        for item_id in value:
+            cart_item = CartEntry.query.filter_by(id=item_id).first()
+            if cart_item is None:
+                raise ValidationError(
+                    f"Invalid cart_item_id: CartEntry with id {item_id} does not exist."
+                )
 
     @post_load
-    def get_validated_entry(self, data, **kwargs):
-        return {"cart_entry_id": data.get("id")}
+    def get_validated_entries(self, data, **kwargs):
+        return {"cart_item_ids": data.get("cart_item_ids")}
 
 
 class CartDetailsSchema(BaseSchema):

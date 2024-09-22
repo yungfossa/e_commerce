@@ -14,6 +14,8 @@ from core.validators.customer.customer_wishlist import (
     WishlistsDetailsSchema,
 )
 
+WISHLIST_NOT_FOUND = "Wishlist not found"
+
 customer_wishlists_bp = Blueprint("customer_wishlists", __name__)
 
 validate_insert_to_wl = AddToWishlistSchema()
@@ -51,7 +53,7 @@ def get_wishlist_content(ulid):
     wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
 
     if not wishlist:
-        return bad_request(message="Wishlist not found")
+        return bad_request(message=WISHLIST_NOT_FOUND)
 
     entries = (
         db.session.query(MVProductCategory, WishListEntry, Listing, Seller)
@@ -87,7 +89,7 @@ def add_wishlist_entry(ulid):
 
     wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
     if not wishlist:
-        return bad_request(message="Wishlist not found")
+        return bad_request(message=WISHLIST_NOT_FOUND)
 
     wishlist_entry = WishListEntry.query.filter_by(
         wishlist_id=wishlist.id, listing_id=listing_id
@@ -159,7 +161,7 @@ def upsert_wishlist():
             id=wishlist_id, customer_id=customer_id
         ).first()
         if not wishlist:
-            return bad_request(message="Wishlist not found")
+            return bad_request(message=WISHLIST_NOT_FOUND)
         wishlist.update(name=wishlist_name)
         return success_response(message="Wishlist updated successfully")
     else:

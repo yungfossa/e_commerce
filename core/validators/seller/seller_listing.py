@@ -18,33 +18,33 @@ def validate_price(value: Decimal):
         )
 
 
-class EditListingSchema(Schema):
+class ListingSchemaBase(Schema):
     quantity = fields.Integer(
         required=True,
         validate=validate_quantity,
-        error_messages={
-            "required": "Missing listing quantity",
-        },
+        error_messages={"required": "Missing listing quantity"},
     )
 
     price = fields.Decimal(
         required=True,
         places=2,
         validate=validate_price,
-        error_messages={
-            "required": "Missing listing price",
-        },
+        error_messages={"required": "Missing listing price"},
     )
 
     @post_load
-    def get_validated_edited_listing(self, data, **kwargs):
+    def get_validated_listing_base(self, data, **kwargs):
         return {
-            "quantity": data.get("quantity"),
-            "price": data.get("price"),
+            "quantity": data["quantity"],
+            "price": data["price"],
         }
 
 
-class AddListingSchema(BaseSchema, EditListingSchema):
+class EditListingSchema(ListingSchemaBase):
+    pass
+
+
+class AddListingSchema(BaseSchema, ListingSchemaBase):
     product_state = fields.String(
         required=True,
         error_messages={"required": "Missing listing state"},
@@ -52,21 +52,21 @@ class AddListingSchema(BaseSchema, EditListingSchema):
 
     @validates("id")
     def validate_product(self, value: str):
-        product = Product.query.filter_by(id=value).first()
-        if product is None:
+        if not Product.query.filter_by(id=value).first():
             raise ValidationError("Invalid product_id: Product does not exist.")
 
     @validates("product_state")
     def validate_product_state(self, value: str):
-        valid_states = [state.value for state in ProductState]
-        if value not in valid_states:
+        if value not in [state.value for state in ProductState]:
             raise ValidationError("Invalid product_state")
 
     @post_load
     def get_validated_listing(self, data, **kwargs):
-        return {
-            "product_id": data.get("id"),
-            "quantity": data.get("quantity"),
-            "price": data.get("price"),
-            "product_state": data.get("product_state"),
-        }
+        validated_data = self.get_validated_listing_base(data)
+        validated_data.update(
+            {
+                "product_id": data["id"],
+                "product_state": data["product_state"],
+            }
+        )
+        return validated_data

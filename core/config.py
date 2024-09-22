@@ -1,5 +1,6 @@
 import os
 from datetime import timedelta
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -7,7 +8,7 @@ load_dotenv()
 
 
 class Config(object):
-    NAME: str = None
+    NAME: Optional[str] = None
 
     AGENT_HOSTNAME = os.getenv("AGENT_HOSTNAME", "127.0.0.1")
     AGENT_PORT = int(os.getenv("AGENT_PORT", "4317"))

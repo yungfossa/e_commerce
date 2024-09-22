@@ -1,11 +1,12 @@
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from core import db
 from core.blueprints.errors.handlers import bad_request
 from core.blueprints.utils import required_user_type, success_response
-from core.models import CartEntry, Listing, MVProductCategory, Seller
+from core.models import Cart, CartEntry, Listing, MVProductCategory, Seller
 from core.validators.customer.customer_cart import (
     RemoveFromCartSchema,
     UpsertCartSchema,
@@ -36,7 +37,7 @@ def cart_summary(entries):
     return {
         "cart_entries": items,
         "cart_total": total_price,
-        "is_empty": items == len(items) == 0,
+        "is_empty": len(items) == 0,
     }
 
 
@@ -125,17 +126,44 @@ def upsert_cart_entry():
     )
 
 
-# TODO refactor as the wishlist
 @customer_cart_bp.route("/cart", methods=["DELETE"])
 @required_user_type(["customer"])
-def remove_cart_entry():
+def remove_cart_item():
     try:
-        validated_data = validation_remove_from_cart.load(request.get_json())
+        schema = RemoveFromCartSchema()
+        validated_data = schema.load(request.get_json())
+        cart_item_ids = validated_data.get("cart_item_ids")
+        customer_id = get_jwt_identity()
+
+        cart_entries = (
+            CartEntry.query.join(Cart)
+            .filter(CartEntry.id.in_(cart_item_ids), Cart.customer_id == customer_id)
+            .all()
+        )
+
+        deleted_count = len(cart_entries)
+
+        for entry in cart_entries:
+            db.session.delete(entry)
+
+        db.session.commit()
+
+        if deleted_count == 0:
+            return success_response(message="No cart items were found for removal")
+        elif deleted_count < len(cart_item_ids):
+            return success_response(
+                message=f"{deleted_count} out of {len(cart_item_ids)} cart items were removed successfully"
+            )
+        else:
+            return success_response(
+                message="All specified cart items have been removed successfully"
+            )
+
     except ValidationError as err:
         return bad_request(err.messages)
-
-    cart_entry_id = validated_data.get("cart_entry_id")
-
-    CartEntry.query.filter_by(id=cart_entry_id).first().delete()
-
-    return success_response(message="Cart entry removed successfully")
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return bad_request(f"Database error occurred: {str(e)}")
+    except Exception as e:
+        db.session.rollback()
+        return bad_request(f"An unexpected error occurred: {str(e)}")

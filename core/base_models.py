@@ -32,7 +32,6 @@ class CRUDMixin(object):
         db.session.delete(self)
         if commit:
             return db.session.commit()
-        return
 
 
 class BaseModel(db.Model, CRUDMixin, SerializerMixin):

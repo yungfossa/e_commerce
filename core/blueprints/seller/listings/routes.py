@@ -26,7 +26,7 @@ def listings_summary(entries):
             "listing_quantity": entry.quantity,
             "listing_price": entry.price,
             "listing_product_state": entry.product_state.value,
-            "is_available": entry.available,
+            "is_available": entry.is_available,
             "purchase_count": entry.purchase_count,
             "view_count": entry.view_count,
             "listing_review_rate": entry.average_rating,
@@ -37,7 +37,7 @@ def listings_summary(entries):
 
     return {
         "listings": items,
-        "is_empty": items == len(items) == 0,
+        "is_empty": len(items) == 0,
     }
 
 
@@ -79,7 +79,7 @@ def listings():
             Listing.product_state.value,
             Listing.purchase_count,
             Listing.view_count,
-            Listing.available,
+            Listing.is_available,
             func.coalesce(ListingReview.c.average_rating, 0).label("average_rating"),
             func.coalesce(ListingReview.c.review_count, 0).label("review_count"),
         )
@@ -103,14 +103,14 @@ def create_listing():
     price = validated_data.get("price")
     product_state = validated_data.get("product_state")
     product_id = request.get_json().get("id")
-    available = quantity != 0
+    is_available = quantity != 0
 
     seller_id = get_jwt_identity()
 
     listing = Listing.create(
         quantity=quantity,
         price=price,
-        available=available,
+        is_available=is_available,
         product_state=product_state,
         seller_id=seller_id,
         product_id=product_id,
@@ -157,7 +157,7 @@ def edit_listing(ulid):
 
     quantity = validated_data.get("quantity")
     price = validated_data.get("price")
-    available = quantity != 0
+    is_available = quantity != 0
 
     listing = Listing.query.filter_by(id=ulid).first()
 
@@ -166,7 +166,7 @@ def edit_listing(ulid):
 
     listing.update(
         quantity=quantity,
-        available=available,
+        is_available=is_available,
         price=price,
     )
 

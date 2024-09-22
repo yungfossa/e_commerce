@@ -1,5 +1,5 @@
 import enum
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from time import time
 from typing import List, Optional
@@ -28,6 +28,12 @@ from sqlalchemy_utils.compat import _select_args
 
 from . import db
 from .base_models import BaseModel
+
+USERS_ID_FK = "users.id"
+CUSTOMERS_ID = "customers.id"
+LISTINGS_ID = "listings.id"
+PRODUCTS_ID = "products.id"
+CASCADE_ALL_DELETE_ORPHAN = "all, delete-orphan"
 
 
 class ULID(TypeDecorator):
@@ -79,7 +85,7 @@ class TokenBlocklist(BaseModel):
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     jti: Mapped[str] = mapped_column(String(36), index=True)
-    user_id: Mapped[ULID] = mapped_column(ULID, ForeignKey("users.id"))
+    user_id: Mapped[str] = mapped_column(ULID, ForeignKey(USERS_ID_FK))
     created_at: Mapped[datetime] = mapped_column(DateTime)
     expired_at: Mapped[datetime] = mapped_column(DateTime, index=True)
 
@@ -98,15 +104,15 @@ class User(BaseModel):
     profile_img: Mapped[Optional[str]] = mapped_column(Text)
     user_type: Mapped[str] = mapped_column(Enum(UserType))
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
     modified_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow()
+        DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC)
     )
     verified_on: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     delete_request: Mapped[Optional["DeleteRequest"]] = relationship(
         back_populates="user",
-        cascade="all, delete-orphan",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
         single_parent=True,
         uselist=False,
     )
@@ -155,7 +161,7 @@ class Admin(User):
     __tablename__ = "admins"
     id: Mapped[str] = mapped_column(
         ULID,
-        ForeignKey("users.id", ondelete="cascade"),
+        ForeignKey(USERS_ID_FK, ondelete="cascade"),
         primary_key=True,
         server_default=func.gen_ulid(),
     )
@@ -167,7 +173,7 @@ class Seller(User):
     __tablename__ = "sellers"
     id: Mapped[str] = mapped_column(
         ULID,
-        ForeignKey("users.id", ondelete="cascade"),
+        ForeignKey(USERS_ID_FK, ondelete="cascade"),
         primary_key=True,
         server_default=func.gen_ulid(),
     )
@@ -176,7 +182,7 @@ class Seller(User):
 
     listing: Mapped[Optional[List["Listing"]]] = relationship(
         back_populates="seller",
-        cascade="all, delete-orphan",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
     )
 
     __mapper_args__ = {"polymorphic_identity": UserType.SELLER}
@@ -186,7 +192,7 @@ class Customer(User):
     __tablename__ = "customers"
     id: Mapped[str] = mapped_column(
         ULID,
-        ForeignKey("users.id", ondelete="cascade"),
+        ForeignKey(USERS_ID_FK, ondelete="cascade"),
         primary_key=True,
         server_default=func.gen_ulid(),
     )
@@ -195,17 +201,17 @@ class Customer(User):
     address: Mapped[Optional["CustomerAddress"]] = relationship(
         back_populates="customer",
         uselist=False,
-        cascade="all, delete-orphan",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
     )
 
     wishlist: Mapped[Optional[List["WishList"]]] = relationship(
         back_populates="customer",
-        cascade="all, delete-orphan",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
         single_parent=True,
     )
     review: Mapped[List["ListingReview"]] = relationship(
         back_populates="customer",
-        cascade="all, delete-orphan",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
         single_parent=True,
     )
 
@@ -223,7 +229,7 @@ class CustomerAddress(BaseModel):
     country: Mapped[str] = mapped_column(String(64))
     postal_code: Mapped[str] = mapped_column(String(32))
     customer_id: Mapped[Optional[str]] = mapped_column(
-        ULID, ForeignKey("customers.id"), nullable=True
+        ULID, ForeignKey(CUSTOMERS_ID), nullable=True
     )
 
     customer: Mapped["Customer"] = relationship(back_populates="address", uselist=False)
@@ -244,7 +250,7 @@ ProductWordOccurrence = Table(
     Column(
         "product_id",
         ULID,
-        ForeignKey("products.id"),
+        ForeignKey(PRODUCTS_ID),
         primary_key=True,
         server_default=func.gen_ulid(),
     ),
@@ -285,7 +291,7 @@ class Listing(BaseModel):
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     quantity: Mapped[int]
-    available: Mapped[bool] = mapped_column(default=False)
+    is_available: Mapped[bool] = mapped_column(default=False)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     product_state: Mapped[str] = mapped_column(
         Enum(ProductState), default=ProductState.NEW
@@ -293,13 +299,13 @@ class Listing(BaseModel):
     purchase_count: Mapped[int] = mapped_column(default=0)
     view_count: Mapped[int] = mapped_column(default=0)
     seller_id: Mapped[str] = mapped_column(ULID, ForeignKey("sellers.id"))
-    product_id: Mapped[str] = mapped_column(ULID, ForeignKey("products.id"))
+    product_id: Mapped[str] = mapped_column(ULID, ForeignKey(PRODUCTS_ID))
 
     seller: Mapped["Seller"] = relationship(back_populates="listing")
     product: Mapped["Product"] = relationship(back_populates="listing")
     cart_entry: Mapped[List["CartEntry"]] = relationship(back_populates="listing")
     review: Mapped[List["ListingReview"]] = relationship(
-        back_populates="listing", cascade="all, delete-orphan"
+        back_populates="listing", cascade=CASCADE_ALL_DELETE_ORPHAN
     )
     order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="listing")
 
@@ -312,12 +318,12 @@ class ListingReview(BaseModel):
     title: Mapped[str] = mapped_column(String(64))
     description: Mapped[Optional[str]] = mapped_column(Text)
     rating: Mapped[int] = mapped_column(Enum(ReviewRate))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
     modified_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow()
+        DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC)
     )
-    customer_id: Mapped[str] = mapped_column(ULID, ForeignKey("customers.id"))
-    listing_id: Mapped[str] = mapped_column(ULID, ForeignKey("listings.id"))
+    customer_id: Mapped[str] = mapped_column(ULID, ForeignKey(CUSTOMERS_ID))
+    listing_id: Mapped[str] = mapped_column(ULID, ForeignKey(LISTINGS_ID))
 
     customer: Mapped["Customer"] = relationship(back_populates="review")
     listing: Mapped["Listing"] = relationship(back_populates="review")
@@ -330,7 +336,7 @@ class CartEntry(BaseModel):
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     cart_id: Mapped[str] = mapped_column(ULID, ForeignKey("carts.customer_id"))
-    listing_id: Mapped[str] = mapped_column(ULID, ForeignKey("listings.id"))
+    listing_id: Mapped[str] = mapped_column(ULID, ForeignKey(LISTINGS_ID))
 
     cart: Mapped["Cart"] = relationship(back_populates="cart_entry")
     listing: Mapped["Listing"] = relationship(back_populates="cart_entry")
@@ -339,7 +345,7 @@ class CartEntry(BaseModel):
 class Cart(BaseModel):
     __tablename__ = "carts"
     customer_id: Mapped[str] = mapped_column(
-        ULID, ForeignKey("customers.id"), primary_key=True
+        ULID, ForeignKey(CUSTOMERS_ID), primary_key=True
     )
 
     customer: Mapped["Customer"] = relationship(back_populates="cart")
@@ -353,7 +359,7 @@ class WishListEntry(BaseModel):
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
-    product_id: Mapped[str] = mapped_column(ULID, ForeignKey("products.id"))
+    product_id: Mapped[str] = mapped_column(ULID, ForeignKey(PRODUCTS_ID))
     wishlist_id: Mapped[str] = mapped_column(ULID, ForeignKey("wishlists.id"))
 
     product: Mapped["Product"] = relationship(back_populates="wishlist_entry")
@@ -366,11 +372,11 @@ class WishList(BaseModel):
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     name: Mapped[str] = mapped_column(String(32))
-    customer_id: Mapped[str] = mapped_column(ULID, ForeignKey("customers.id"))
+    customer_id: Mapped[str] = mapped_column(ULID, ForeignKey(CUSTOMERS_ID))
 
     customer: Mapped["Customer"] = relationship(back_populates="wishlist")
     wishlist_entries: Mapped[Optional[List["WishListEntry"]]] = relationship(
-        back_populates="wishlist", cascade="all, delete-orphan"
+        back_populates="wishlist", cascade=CASCADE_ALL_DELETE_ORPHAN
     )
 
 
@@ -380,7 +386,7 @@ class OrderEntry(BaseModel):
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     order_id: Mapped[str] = mapped_column(ULID, ForeignKey("orders.id"))
-    listing_id: Mapped[str] = mapped_column(ULID, ForeignKey("listings.id"))
+    listing_id: Mapped[str] = mapped_column(ULID, ForeignKey(LISTINGS_ID))
 
     order: Mapped["Order"] = relationship(back_populates="order_entries")
     listing: Mapped["Listing"] = relationship(back_populates="order_entries")
@@ -411,7 +417,7 @@ class DeleteRequest(BaseModel):
     reason: Mapped[Optional[str]] = mapped_column(Text)
     requested_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     to_be_removed_at: Mapped[datetime] = mapped_column(DateTime)
-    user_id: Mapped[str] = mapped_column(ULID, ForeignKey("users.id"))
+    user_id: Mapped[str] = mapped_column(ULID, ForeignKey(USERS_ID_FK))
 
     user: Mapped["User"] = relationship(back_populates="delete_request")
 

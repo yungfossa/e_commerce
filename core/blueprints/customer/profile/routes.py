@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow.validate import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
 
 from core import db
 from core.blueprints.errors.handlers import (
@@ -13,8 +14,17 @@ from core.blueprints.errors.handlers import (
     not_found,
 )
 from core.blueprints.utils import required_user_type, success_response
-from core.models import Customer, DeleteRequest, ListingReview, User
+from core.models import (
+    Customer,
+    DeleteRequest,
+    ListingReview,
+    Order,
+    OrderEntry,
+    User,
+)
+from core.validators.customer.customer_orders import OrderHistoryFilterSchema
 from core.validators.customer.customer_review import (
+    CreateReviewSchema,
     EditCustomerReviewSchema,
     ReviewFilterSchema,
 )
@@ -25,7 +35,9 @@ customer_profile_bp = Blueprint("customer_profile", __name__)
 validate_edit_profile = EditProfileSchema()
 validate_delete_profile = DeleteProfileSchema()
 validate_edit_review = EditCustomerReviewSchema()
+validate_create_review = CreateReviewSchema()
 validate_review_filters = ReviewFilterSchema()
+validate_orders_filters = OrderHistoryFilterSchema()
 
 
 @customer_profile_bp.route("/profile", methods=["GET"])
@@ -91,7 +103,7 @@ def delete_profile():
 
     customer = User.query.filter_by(id=customer_id).first()
 
-    requested_at = datetime.utcnow()
+    requested_at = datetime.now(UTC)
     to_be_removed_at = requested_at + timedelta(days=30)
 
     dr = DeleteRequest.create(
@@ -164,6 +176,39 @@ def get_reviews():
         return internal_server_error()
 
 
+@customer_profile_bp.route(
+    "/products/<string:product_ulid>/<string:listing_ulid>/review", methods=["POST"]
+)
+@required_user_type(["customer"])
+def create_review(product_ulid, listing_ulid):
+    customer_id = get_jwt_identity()
+
+    try:
+        validated_data = validate_create_review.load(request.get_json())
+
+        ListingReview.create(
+            customer_id=customer_id,
+            rating=validated_data["rating"],
+            title=validated_data["title"],
+            description=validated_data["description"],
+            listing_id=listing_ulid,
+        )
+
+        return success_response(message="Review created successfully")
+
+    except ValidationError as verr:
+        print("Here", verr)
+        return bad_request(verr.messages)
+    except SQLAlchemyError as e:
+        print("There", e)
+        db.session.rollback()
+        return handle_exception(message="An error occurred while createing a review")
+    except Exception as e:
+        print(e)
+        db.session.rollback()
+        return internal_server_error()
+
+
 @customer_profile_bp.route("/profile/reviews/<string:review_ulid>", methods=["PUT"])
 def edit_review(review_ulid):
     customer_id = get_jwt_identity()
@@ -214,8 +259,60 @@ def delete_customer_review(review_ulid):
     return success_response(message="Review successfully deleted")
 
 
-# TODO implement get_orders_history
 @customer_profile_bp.route("/profile/orders-history", methods=["GET"])
 @required_user_type(["customer"])
 def get_orders_history():
-    return "hello"
+    try:
+        # Validate and get filter parameters
+        schema = OrderHistoryFilterSchema()
+        filters = schema.load(request.args)
+        customer_id = get_jwt_identity()
+
+        query = Order.query.filter_by(customer_id=customer_id).options(
+            joinedload(Order.entries).joinedload(OrderEntry.product)
+        )
+
+        # Apply ordering
+        order_column = getattr(Order, filters["order_by"])
+        if filters["order_direction"] == "desc":
+            query = query.order_by(order_column.desc())
+        else:
+            query = query.order_by(order_column.asc())
+
+        # Apply limit and offset
+        total_items = query.count()
+        orders = query.offset(filters["offset"]).limit(filters["limit"]).all()
+
+        orders_data = [
+            {
+                "id": order.id,
+                "status": order.status.value,
+                "total_amount": float(order.total_amount),
+                "created_at": order.created_at.isoformat(),
+                "entries": [
+                    {
+                        "product_name": entry.product.name,
+                        "quantity": entry.quantity,
+                        "price": float(entry.price),
+                    }
+                    for entry in order.entries
+                ],
+            }
+            for order in orders
+        ]
+
+        return success_response(
+            message="Orders history retrieved successfully",
+            data={
+                "orders": orders_data,
+                "pagination": {
+                    "offset": filters["offset"],
+                    "limit": filters["limit"],
+                    "total_items": total_items,
+                },
+            },
+        )
+    except ValidationError as err:
+        return bad_request(message="Invalid filter parameters", errors=err.messages)
+    except Exception as e:
+        return bad_request(message=f"Error retrieving orders history: {str(e)}")

@@ -12,3 +12,9 @@ sellers:
   - email: sales@amazon.com
     name: Amazon Warehouse
     password: changeme
+
+customers:
+  - email: foo@gmail.com
+    name: Foo
+    surname: Bar
+    password: Password1?

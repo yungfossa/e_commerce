@@ -1,7 +1,11 @@
-from marshmallow import Schema, fields, post_load
+from marshmallow import Schema, ValidationError, fields, post_load, validates_schema
 from marshmallow.validate import OneOf, Range
 
-review_filters = {
+from core.models import ReviewRate  # Add this import at the top of the file
+
+INVALID_ARG_KEY = "invalid arg"
+
+REVIEW_FILTERS = {
     "order": ["newest", "oldest", "highest", "lowest"],
 }
 
@@ -26,24 +30,54 @@ class EditCustomerReviewSchema(Schema):
         }
 
 
+class CreateReviewSchema(Schema):
+    title = fields.String(
+        required=True, error_messages={"invalid": "Invalid review title"}
+    )
+    description = fields.String(
+        required=True, error_messages={"invalid": "Invalid review description"}
+    )
+    rating = fields.Integer(
+        required=True,
+        validate=Range(min=1, max=5),
+        error_messages={"invalid": "Invalid review rating"},
+    )
+
+    @validates_schema
+    def validate_rating(self, data, **kwargs):
+        if "rating" in data:
+            try:
+                ReviewRate(data["rating"])
+            except ValueError:
+                raise ValidationError("Invalid rating value")
+
+    @post_load
+    def get_validated_review(self, data, **kwargs):
+        return {
+            "title": data["title"],
+            "description": data["description"],
+            "rating": ReviewRate(data["rating"]),
+        }
+
+
 class ReviewFilterSchema(Schema):
     limit = fields.Integer(
         required=False,
         missing=10,
         validate=Range(min=1, max=100),
-        error_messages={"invalid arg": "Invalid limit"},
+        error_messages={INVALID_ARG_KEY: "Invalid limit"},
     )
     offset = fields.Integer(
         required=False,
         missing=0,
         validate=Range(min=0),
-        error_messages={"invalid arg": "Invalid offset"},
+        error_messages={INVALID_ARG_KEY: "Invalid offset"},
     )
     order_by = fields.String(
         required=False,
         missing="newest",
-        validate=OneOf(review_filters.get("order")),
-        error_messages={"invalid arg": "Invalid order_by filter"},
+        validate=OneOf(REVIEW_FILTERS.get("order")),
+        error_messages={INVALID_ARG_KEY: "Invalid order_by filter"},
     )
 
     @post_load
