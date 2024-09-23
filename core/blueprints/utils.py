@@ -61,7 +61,7 @@ def send_confirmation_email(user: User):
             confirmation_url=confirm_url,
         ),
     )
-    return success_response(f"verification mail sent successfully to {user.email}")
+    return success_response(f"Verification mail sent successfully to {user.email}")
 
 
 def send_password_reset_email(user: User):
@@ -77,4 +77,36 @@ def send_password_reset_email(user: User):
             reset_url=reset_password_url,
         ),
     )
-    return success_response(f"password reset mail sent successfully to {user.email}")
+    return success_response(f"Password reset mail sent successfully to {user.email}")
+
+
+def send_order_confirmation_email(user: User, order_id: str):
+    send_email(
+        subject="ShopSphere Order Confirmation",
+        sender=current_app.config["MAIL_DEFAULT_SENDER"],
+        recipients=[user.email],
+        html_body=render_template(
+            "order_confirmation.html",
+            username=user.email.split("@")[0],
+            order_id=order_id,
+        ),
+    )
+    return success_response(
+        f"Order confirmation email sent successfully to {user.email}"
+    )
+
+
+def send_order_cancellation_email(user: User, order_id: str):
+    send_email(
+        subject="ShopSphere Order Cancellation",
+        sender=current_app.config["MAIL_DEFAULT_SENDER"],
+        recipients=[user.email],
+        html_body=render_template(
+            "order_cancellation.html",
+            username=user.email.split("@")[0],
+            order_id=order_id,
+        ),
+    )
+    return success_response(
+        f"Order cancellation email sent successfully to {user.email}"
+    )

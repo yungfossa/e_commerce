@@ -4,7 +4,6 @@ from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow.validate import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload
 
 from core import db
 from core.blueprints.errors.handlers import (
@@ -18,11 +17,8 @@ from core.models import (
     Customer,
     DeleteRequest,
     ListingReview,
-    Order,
-    OrderEntry,
     User,
 )
-from core.validators.customer.customer_orders import OrderHistoryFilterSchema
 from core.validators.customer.customer_review import (
     CreateReviewSchema,
     EditCustomerReviewSchema,
@@ -37,7 +33,6 @@ validate_delete_profile = DeleteProfileSchema()
 validate_edit_review = EditCustomerReviewSchema()
 validate_create_review = CreateReviewSchema()
 validate_review_filters = ReviewFilterSchema()
-validate_orders_filters = OrderHistoryFilterSchema()
 
 
 @customer_profile_bp.route("/profile", methods=["GET"])
@@ -257,62 +252,3 @@ def delete_customer_review(review_ulid):
     review.delete()
 
     return success_response(message="Review successfully deleted")
-
-
-@customer_profile_bp.route("/profile/orders-history", methods=["GET"])
-@required_user_type(["customer"])
-def get_orders_history():
-    try:
-        # Validate and get filter parameters
-        schema = OrderHistoryFilterSchema()
-        filters = schema.load(request.args)
-        customer_id = get_jwt_identity()
-
-        query = Order.query.filter_by(customer_id=customer_id).options(
-            joinedload(Order.entries).joinedload(OrderEntry.product)
-        )
-
-        # Apply ordering
-        order_column = getattr(Order, filters["order_by"])
-        if filters["order_direction"] == "desc":
-            query = query.order_by(order_column.desc())
-        else:
-            query = query.order_by(order_column.asc())
-
-        # Apply limit and offset
-        total_items = query.count()
-        orders = query.offset(filters["offset"]).limit(filters["limit"]).all()
-
-        orders_data = [
-            {
-                "id": order.id,
-                "status": order.status.value,
-                "total_amount": float(order.total_amount),
-                "created_at": order.created_at.isoformat(),
-                "entries": [
-                    {
-                        "product_name": entry.product.name,
-                        "quantity": entry.quantity,
-                        "price": float(entry.price),
-                    }
-                    for entry in order.entries
-                ],
-            }
-            for order in orders
-        ]
-
-        return success_response(
-            message="Orders history retrieved successfully",
-            data={
-                "orders": orders_data,
-                "pagination": {
-                    "offset": filters["offset"],
-                    "limit": filters["limit"],
-                    "total_items": total_items,
-                },
-            },
-        )
-    except ValidationError as err:
-        return bad_request(message="Invalid filter parameters", errors=err.messages)
-    except Exception as e:
-        return bad_request(message=f"Error retrieving orders history: {str(e)}")
