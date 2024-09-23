@@ -69,7 +69,6 @@ class OrderStatus(enum.Enum):
     PENDING = "pending"
     SHIPPED = "shipped"
     DELIVERED = "delivered"
-    CANCELLED = "cancelled"
 
 
 class ReviewRate(enum.Enum):
@@ -199,11 +198,6 @@ class Customer(User):
     )
 
     cart: Mapped["Cart"] = relationship(back_populates="customer")
-    order: Mapped[Optional[List["Order"]]] = relationship(
-        back_populates="customer",
-        uselist=False,
-        cascade=CASCADE_ALL_DELETE_ORPHAN,
-    )
     address: Mapped[Optional["CustomerAddress"]] = relationship(
         back_populates="customer",
         uselist=False,
@@ -356,9 +350,7 @@ class Cart(BaseModel):
 
     customer: Mapped["Customer"] = relationship(back_populates="cart")
     cart_entry: Mapped[Optional[List["CartEntry"]]] = relationship(
-        back_populates="cart",
-        uselist=False,
-        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        back_populates="cart"
     )
 
 
@@ -413,10 +405,8 @@ class Order(BaseModel):
     address_state: Mapped[str] = mapped_column(String(64))
     address_country: Mapped[str] = mapped_column(String(64))
     address_postal_code: Mapped[str] = mapped_column(String(32))
-    customer_id: Mapped[str] = mapped_column(ULID, ForeignKey(CUSTOMERS_ID))
 
     order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="order")
-    customer: Mapped["Customer"] = relationship(back_populates="order")
 
 
 class DeleteRequest(BaseModel):
