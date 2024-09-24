@@ -103,7 +103,7 @@ class User(BaseModel):
     birth_date: Mapped[Optional[datetime]] = mapped_column(Date)
     phone_number: Mapped[Optional[str]] = mapped_column(String(32))
     profile_img: Mapped[Optional[str]] = mapped_column(Text)
-    user_type: Mapped[str] = mapped_column(Enum(UserType))
+    user_type: Mapped[UserType] = mapped_column(Enum(UserType))
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
     modified_at: Mapped[datetime] = mapped_column(
@@ -299,7 +299,7 @@ class Listing(BaseModel):
     quantity: Mapped[int]
     is_available: Mapped[bool] = mapped_column(default=False)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    product_state: Mapped[str] = mapped_column(
+    product_state: Mapped[ProductState] = mapped_column(
         Enum(ProductState), default=ProductState.NEW
     )
     purchase_count: Mapped[int] = mapped_column(default=0)
@@ -323,7 +323,7 @@ class ListingReview(BaseModel):
     )
     title: Mapped[str] = mapped_column(String(64))
     description: Mapped[Optional[str]] = mapped_column(Text)
-    rating: Mapped[int] = mapped_column(Enum(ReviewRate))
+    rating: Mapped[ReviewRate] = mapped_column(Enum(ReviewRate))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
     modified_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC)
@@ -406,7 +406,7 @@ class Order(BaseModel):
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    order_status: Mapped[str] = mapped_column(Enum(OrderStatus))
+    order_status: Mapped[OrderStatus] = mapped_column(Enum(OrderStatus))
     purchased_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     address_street: Mapped[str] = mapped_column(String(128))
     address_city: Mapped[str] = mapped_column(String(64))
