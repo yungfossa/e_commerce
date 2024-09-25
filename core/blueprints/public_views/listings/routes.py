@@ -19,12 +19,16 @@ from core.models import (
     ProductCategory,
 )
 from core.validators.customer.customer_review import ReviewFilterSchema
-from core.validators.public_views.public_products import ProductsFilterSchema
+from core.validators.public_views.public_products import (
+    ListingsFilterSchema,
+    ProductsFilterSchema,
+)
 
 listings_bp = Blueprint("listings", __name__)
 
 validate_products_filters = ProductsFilterSchema()
 validate_review_filters = ReviewFilterSchema()
+validate_listings_filters = ListingsFilterSchema()
 
 
 @listings_bp.route("/categories", methods=["GET"])
@@ -54,7 +58,7 @@ def get_listings_reviews(listing_ulid):
         elif order_by == "highest":
             query = query.order_by(ListingReview.rating.desc())
         elif order_by == "lowest":
-            query = query.order_by(ListingReview.rating.desc())
+            query = query.order_by(ListingReview.rating.asc())
 
         reviews = query.limit(limit).offset(offset).all()
 
@@ -106,10 +110,14 @@ def get_products():
 
         limit = query_params.get("limit")
         offset = query_params.get("offset")
+        category = query_params.get("category")
 
-        query = Product.query.filter_by()
+        query = Product.query
 
-        # TODO Add filters checking
+        if category:
+            query = query.join(ProductCategory).filter(
+                ProductCategory.title == category
+            )
 
         products = query.limit(limit).offset(offset).all()
 
@@ -124,60 +132,107 @@ def get_products():
         )
 
 
-# Todo add filters to the following route ?
 @listings_bp.route("/products/<string:product_ulid>", methods=["GET"])
 def get_product_listings_and_reviews(product_ulid):
-    product = Product.query.filter_by(id=product_ulid).first()
+    try:
+        # Load and validate query parameters
+        query_params = validate_listings_filters.load(request.args)
 
-    if not product:
-        return not_found("Product not found")
+        limit = query_params.get("limit")
+        offset = query_params.get("offset")
+        price_order_by = query_params.get("price_order_by")
+        review_order_by = query_params.get("review_order_by")
+        product_state = query_params.get("product_state")
+        view_count_order_by = query_params.get("view_count_order_by")
+        purchase_count_order_by = query_params.get("purchase_count_order_by")
 
-    product_with_listings = (
-        Product.query.options(
-            joinedload(Product.listing)
-            .joinedload(Listing.review)
-            .joinedload(ListingReview.customer),
-            joinedload(Product.listing).joinedload(Listing.seller),
+        # Fetch the product by ULID
+        product = Product.query.filter_by(id=product_ulid).first()
+
+        if not product:
+            return not_found("Product not found")
+
+        # Build the query for listings
+        query = (
+            Listing.query.join(Product)
+            .options(
+                joinedload(Listing.review).joinedload(ListingReview.customer),
+                joinedload(Listing.seller),
+            )
+            .filter(Product.id == product_ulid)
         )
-        .filter_by(id=product_ulid)
-        .first()
-    )
 
-    product_data = {
-        "name": product.name,
-        "description": product.description,
-        "image_src": product.image_src,
-        "category": {
-            "name": product.category.title,
-        },
-        "listings": [
-            {
-                "price": float(listing.price),
-                "quantity": listing.quantity,
-                "is_available": listing.is_available,
-                "product_state": listing.product_state.value,
-                "seller": {"id": listing.seller.id, "name": listing.seller.name},
-                "reviews": [
-                    {
-                        "title": review.title,
-                        "description": review.description,
-                        "rating": review.rating.value,
-                        "created_at": review.created_at.isoformat(),
-                        "customer": {
-                            "id": review.customer.id,
-                            "name": review.customer.name,
-                        },
-                    }
-                    for review in listing.review
-                ],
-            }
-            for listing in product_with_listings.listing
-        ]
-        if product_with_listings
-        else [],
-    }
+        # Apply ordering based on query parameters
+        order_by_mapping = {
+            "price": price_order_by,
+            "view_count": view_count_order_by,
+            "purchase_count": purchase_count_order_by,
+        }
 
-    return success_response(message="product listings", data=product_data)
+        for key, value in order_by_mapping.items():
+            if value:
+                query = query.order_by(
+                    getattr(Listing, key).desc()
+                    if value == "desc"
+                    else getattr(Listing, key).asc()
+                )
+
+        # Apply filters
+        if product_state:
+            query = query.filter(Listing.product_state == product_state)
+        if review_order_by:
+            if review_order_by == "asc":
+                query = query.join(Listing.review).order_by(ListingReview.rating.asc())
+            elif review_order_by == "desc":
+                query = query.join(Listing.review).order_by(ListingReview.rating.desc())
+
+        # Fetch listings with pagination
+        listings = query.limit(limit).offset(offset).all()
+
+        # Prepare the response data
+        product_data = {
+            "name": product.name,
+            "description": product.description,
+            "image_src": product.image_src,
+            "category": {
+                "name": product.category.title,
+            },
+            "listings": [
+                {
+                    "price": float(listing.price),
+                    "quantity": listing.quantity,
+                    "is_available": listing.is_available,
+                    "product_state": listing.product_state.value,
+                    "seller": {"id": listing.seller.id, "name": listing.seller.name},
+                    "reviews": [
+                        {
+                            "title": review.title,
+                            "description": review.description,
+                            "rating": review.rating.value,
+                            "created_at": review.created_at.isoformat(),
+                            "customer": {
+                                "id": review.customer.id,
+                                "name": review.customer.name,
+                            },
+                        }
+                        for review in listing.review
+                    ],
+                }
+                for listing in listings
+            ]
+            if listings
+            else [],
+        }
+
+        return success_response(message="product listings", data=product_data)
+
+    except ValidationError as verr:
+        return bad_request(verr.messages)
+    except SQLAlchemyError:
+        db.session.rollback()
+        return handle_exception(
+            message="An error occurred while getting product listings and reviews"
+        )
 
 
 @listings_bp.route(
@@ -208,9 +263,7 @@ def get_listing(product_ulid, listing_ulid):
         "product_state": listing.product_state.value,
         "purchase_count": listing.purchase_count,
         "view_count": listing.view_count,
-        "seller": {
-            "name": listing.seller.name  # Assumendo che Seller abbia un campo 'name'
-        },
+        "seller": {"name": listing.seller.name},
         "product": {
             "name": mv_product.product_name,
             "description": mv_product.product_description,
@@ -223,9 +276,7 @@ def get_listing(product_ulid, listing_ulid):
                 "description": review.description,
                 "rating": review.rating.value,
                 "created_at": review.created_at.isoformat(),
-                "customer": {
-                    "name": review.customer.name  # Assumendo che Customer abbia un campo 'name'
-                },
+                "customer": {"name": review.customer.name},
             }
             for review in listing.review
         ],
