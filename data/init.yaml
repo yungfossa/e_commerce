@@ -12,6 +12,9 @@ sellers:
   - email: sales@amazon.com
     name: Amazon Warehouse
     password: changeme
+  - email: sales@google.com
+    name: Google
+    password: changeme
 
 customers:
   - email: foo@gmail.com

@@ -4,7 +4,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const Wrapper = styled.div<{ width?: number }>`
     width: ${(props) => (props.width ? `${props.width}px` : "100%")};
     margin: 0.5rem;
-    padding: 0 1rem 0 1rem;
     background-color: #f3f3f4;
     color: #0d0c22;
     border: 2px solid transparent;
@@ -15,8 +14,8 @@ const Wrapper = styled.div<{ width?: number }>`
     flex-direction: row;
 `;
 
-const InputWrapper = styled.input<{ width?: number }>`
-    width: 100%;
+const InputWrapper = styled.input`
+    padding: 0 1rem 0 1rem;
     height: 40px;
     line-height: 28px;
     outline: none;
