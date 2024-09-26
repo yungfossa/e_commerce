@@ -281,9 +281,6 @@ class Product(BaseModel):
     category_id: Mapped[str] = mapped_column(ULID, ForeignKey("product_categories.id"))
 
     category: Mapped["ProductCategory"] = relationship(back_populates="product")
-    wishlist_entry: Mapped[Optional[List["WishListEntry"]]] = relationship(
-        back_populates="product"
-    )
     listing: Mapped[Optional[List["Listing"]]] = relationship(back_populates="product")
     words: Mapped[List["WordOccurrence"]] = relationship(
         secondary=ProductWordOccurrence, back_populates="products"
@@ -314,6 +311,9 @@ class Listing(BaseModel):
         back_populates="listing", cascade=CASCADE_ALL_DELETE_ORPHAN
     )
     order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="listing")
+    wishlist_entry: Mapped[List["WishListEntry"]] = relationship(
+        back_populates="listing"
+    )
 
 
 class ListingReview(BaseModel):
@@ -367,11 +367,12 @@ class WishListEntry(BaseModel):
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
-    product_id: Mapped[str] = mapped_column(ULID, ForeignKey(PRODUCTS_ID))
+    product_id: Mapped[str] = mapped_column(ULID, ForeignKey("listings.id"))
     wishlist_id: Mapped[str] = mapped_column(ULID, ForeignKey("wishlists.id"))
+    listing_id: Mapped["Listing"] = relationship(back_populates="wishlist_entry")
 
-    product: Mapped["Product"] = relationship(back_populates="wishlist_entry")
     wishlist: Mapped["WishList"] = relationship(back_populates="wishlist_entries")
+    listing: Mapped["Listing"] = relationship(back_populates="wishlist_entry")
 
 
 class WishList(BaseModel):

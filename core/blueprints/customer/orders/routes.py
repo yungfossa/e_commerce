@@ -4,9 +4,11 @@ from flask import Blueprint, current_app, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
 from models import Cart, Listing, Order, OrderEntry, OrderStatus
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from core import db
+from core.blueprints.errors.handlers import handle_exception
 from core.utils import (
     bad_request,
     required_user_type,
@@ -30,11 +32,12 @@ validate_order_summary_filters = OrderSummaryFilterSchema()
 @customer_orders_bp.route("/orders", methods=["POST"])
 @required_user_type(["customer"])
 def create_orders():
+    customer_id = get_jwt_identity()
+
     try:
         # Validate input data
         validated_data = validate_order_creation.load(data=request.get_json())
 
-        customer_id = get_jwt_identity()
         cart = Cart.query.filter_by(customer_id=customer_id).first()
 
         # Check if cart exists and is not empty
@@ -98,8 +101,9 @@ def create_orders():
 @customer_orders_bp.route("/orders/<order_ulid>", methods=["GET"])
 @required_user_type(["customer"])
 def get_order_details(order_ulid):
+    customer_id = get_jwt_identity()
+
     try:
-        customer_id = get_jwt_identity()
         order = Order.query.filter_by(id=order_ulid, customer_id=customer_id).first()
 
         if not order:
@@ -130,6 +134,12 @@ def get_order_details(order_ulid):
         return success_response(
             message="Order details retrieved successfully", data=order_data
         )
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return handle_exception(
+            message="A database error occurred while fetching the order details. Please try again later.",
+            error=str(e),
+        )
     except Exception as e:
         return bad_request(message=f"Error retrieving order details: {str(e)}")
 
@@ -137,11 +147,15 @@ def get_order_details(order_ulid):
 @customer_orders_bp.route("/orders/summary", methods=["GET"])
 @required_user_type(["customer"])
 def get_orders_summary():
+    customer_id = get_jwt_identity()
+
     try:
         # Validate and load filter parameters from request
         filters = validate_order_summary_filters.load(request.args)
-        customer_id = get_jwt_identity()
+    except ValidationError as err:
+        return bad_request(message="Invalid filter parameters", errors=err.messages)
 
+    try:
         # Construct query with eager loading of related models
         query = Order.query.filter_by(customer_id=customer_id).options(
             joinedload(Order.order_entries)
@@ -197,8 +211,12 @@ def get_orders_summary():
                 },
             },
         )
-    except ValidationError as err:
-        return bad_request(message="Invalid filter parameters", errors=err.messages)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return handle_exception(
+            message="A database error occurred while fetching the order details. Please try again later.",
+            error=str(e),
+        )
     except Exception as e:
         return bad_request(message=f"Error retrieving orders history: {str(e)}")
 
@@ -206,8 +224,9 @@ def get_orders_summary():
 @customer_orders_bp.route("/orders/<order_id>/", methods=["DELETE"])
 @required_user_type(["customer"])
 def delete_order(order_ulid):
+    customer_id = get_jwt_identity()
+
     try:
-        customer_id = get_jwt_identity()
         order = Order.query.filter_by(id=order_ulid, customer_id=customer_id).first()
 
         if not order:
@@ -232,6 +251,12 @@ def delete_order(order_ulid):
 
         return success_response(
             message="Order cancelled successfully", data={"order_id": order.id}
+        )
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return handle_exception(
+            message="A database error occurred while cancelling the order. Please try again later.",
+            error=str(e),
         )
     except Exception as e:
         db.session.rollback()
