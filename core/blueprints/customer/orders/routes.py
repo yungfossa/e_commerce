@@ -4,11 +4,12 @@ from flask import Blueprint, current_app, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
 from models import Cart, Listing, Order, OrderEntry, OrderStatus
+
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
-
 from core import db
 from core.blueprints.errors.handlers import handle_exception
+
 from core.utils import (
     bad_request,
     required_user_type,
