@@ -4,12 +4,11 @@ from flask import Blueprint, current_app, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
 from models import Cart, Listing, Order, OrderEntry, OrderStatus
-
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
+
 from core import db
 from core.blueprints.errors.handlers import handle_exception
-
 from core.utils import (
     bad_request,
     required_user_type,
@@ -38,7 +37,10 @@ def create_orders():
     try:
         # Validate input data
         validated_data = validate_order_creation.load(data=request.get_json())
+    except ValidationError as ve:
+        return bad_request(message=f"Validation error: {ve.messages}")
 
+    try:
         cart = Cart.query.filter_by(customer_id=customer_id).first()
 
         # Check if cart exists and is not empty
@@ -91,9 +93,12 @@ def create_orders():
         return success_response(
             message="Order created successfully", data={"order_id": new_order.id}
         )
-
-    except ValidationError as ve:
-        return bad_request(message=f"Validation error: {ve.messages}")
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return handle_exception(
+            message="A database error occurred while creating the order. Please try again later.",
+            error=str(e),
+        )
     except Exception as e:
         db.session.rollback()
         return bad_request(message=f"Error creating order: {str(e)}")

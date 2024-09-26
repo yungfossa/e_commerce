@@ -87,6 +87,7 @@ def send_password_reset_email(user: User):
     )
     return success_response(status_code=200)
 
+
 def send_order_confirmation_email(user: User, order_id: str):
     send_email(
         subject="ShopSphere Order Confirmation",

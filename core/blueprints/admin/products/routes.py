@@ -195,7 +195,7 @@ def delete_category():
             db.session.commit()
             pc.delete()
 
-        return success_response(message="Category removed successfully.")
+        return success_response(status_code=200)
     except SQLAlchemyError:
         db.session.rollback()
         return handle_exception(message="An error occurred while deleting the category")

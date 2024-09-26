@@ -2,11 +2,12 @@ from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
 from sqlalchemy import case, func
+from sqlalchemy.exc import SQLAlchemyError
 
 from core import db
 from core.blueprints.errors.handlers import bad_request, not_found
 from core.blueprints.utils import required_user_type, success_response
-from core.models import Listing, ListingReview, MVProductCategory, ReviewRate
+from core.models import Listing, ListingReview, Product, ProductCategory, ReviewRate
 from core.validators.seller.seller_listing import AddListingSchema, EditListingSchema
 
 seller_listings_bp = Blueprint("seller_listings", __name__)
@@ -46,128 +47,192 @@ def listings_summary(entries):
 def listings():
     seller_id = get_jwt_identity()
 
-    listing_entries = (
-        db.session.query(MVProductCategory, Listing)
-        .join(Listing, Listing.product_id == MVProductCategory.product_id)
-        .outerjoin(
-            db.session.query(
-                ListingReview.listing_id,
-                func.avg(
-                    case(
-                        (ListingReview.rating == ReviewRate.ONE, 1),
-                        (ListingReview.rating == ReviewRate.TWO, 2),
-                        (ListingReview.rating == ReviewRate.THREE, 3),
-                        (ListingReview.rating == ReviewRate.FOUR, 4),
-                        (ListingReview.rating == ReviewRate.FIVE, 5),
-                    )
-                ).label("average_rating"),
-                func.count(ListingReview.id).label("review_count"),
+    try:
+        listing_entries = (
+            db.session.query(Product, ProductCategory, Listing)
+            .join(ProductCategory, Product.category_id == ProductCategory.id)
+            .join(Listing, Listing.product_id == Product.id)
+            .outerjoin(
+                db.session.query(
+                    ListingReview.listing_id,
+                    func.avg(
+                        case(
+                            (ListingReview.rating == ReviewRate.ONE, 1),
+                            (ListingReview.rating == ReviewRate.TWO, 2),
+                            (ListingReview.rating == ReviewRate.THREE, 3),
+                            (ListingReview.rating == ReviewRate.FOUR, 4),
+                            (ListingReview.rating == ReviewRate.FIVE, 5),
+                        )
+                    ).label("average_rating"),
+                    func.count(ListingReview.id).label("review_count"),
+                )
+                .group_by(ListingReview.listing_id)
+                .subquery(),
+                Listing.id == ListingReview.listing_id,
             )
-            .group_by(ListingReview.listing_id)
-            .subquery(),
-            Listing.id == ListingReview.listing_id,
+            .filter(Listing.seller_id == seller_id)
+            .with_entities(
+                Listing.id.label("listing_id"),
+                Product.name.label("product_name"),
+                ProductCategory.title.label("product_category"),
+                Product.description.label("product_description"),
+                Product.image_src.label("product_img"),
+                Listing.quantity,
+                Listing.price,
+                Listing.product_state.value,
+                Listing.purchase_count,
+                Listing.view_count,
+                Listing.is_available,
+                func.coalesce(ListingReview.c.average_rating, 0).label(
+                    "average_rating"
+                ),
+                func.coalesce(ListingReview.c.review_count, 0).label("review_count"),
+            )
+            .all()
         )
-        .filter(Listing.seller_id == seller_id)
-        .with_entities(
-            Listing.id.label("listing_id"),
-            MVProductCategory.product_name,
-            MVProductCategory.product_category,
-            MVProductCategory.product_description,
-            MVProductCategory.product_img,
-            Listing.quantity,
-            Listing.price,
-            Listing.product_state.value,
-            Listing.purchase_count,
-            Listing.view_count,
-            Listing.is_available,
-            func.coalesce(ListingReview.c.average_rating, 0).label("average_rating"),
-            func.coalesce(ListingReview.c.review_count, 0).label("review_count"),
-        )
-        .all()
-    )
 
-    return success_response(
-        message="Listings: ", data=listings_summary(listing_entries)
-    )
+        return success_response(data=listings_summary(listing_entries), status_code=200)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return bad_request(
+            f"A database error occurred while fetching listings: {str(e)}"
+        )
+    except Exception as e:
+        db.session.rollback()
+        return bad_request(
+            f"An unexpected error occurred while fetching listings: {str(e)}"
+        )
 
 
 @seller_listings_bp.route("/seller/listings", methods=["POST"])
 @required_user_type(["seller"])
 def create_listing():
+    seller_id = get_jwt_identity()
+
     try:
         validated_data = validate_add_listing.load(request.get_json())
     except ValidationError as err:
         return bad_request(err.messages)
 
-    quantity = validated_data.get("quantity")
-    price = validated_data.get("price")
-    product_state = validated_data.get("product_state")
-    product_id = request.get_json().get("id")
-    is_available = quantity != 0
+    try:
+        quantity = validated_data.get("quantity")
+        price = validated_data.get("price")
+        product_state = validated_data.get("product_state")
+        product_id = validated_data.get("id")
+        is_available = quantity != 0
 
-    seller_id = get_jwt_identity()
+        listing = Listing.create(
+            quantity=quantity,
+            price=price,
+            is_available=is_available,
+            product_state=product_state,
+            seller_id=seller_id,
+            product_id=product_id,
+        )
 
-    listing = Listing.create(
-        quantity=quantity,
-        price=price,
-        is_available=is_available,
-        product_state=product_state,
-        seller_id=seller_id,
-        product_id=product_id,
-    )
-
-    return success_response(
-        message="Listing added successfully",
-        data={"listing_id": listing.id},
-        status_code=201,
-    )
+        return success_response(
+            message="Listing added successfully",
+            data=listing.id,
+            status_code=201,
+        )
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return bad_request(
+            f"A database error occurred while creating the listing: {str(e)}"
+        )
+    except Exception as e:
+        db.session.rollback()
+        return bad_request(
+            f"An unexpected error occurred while creating the listing: {str(e)}"
+        )
 
 
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["GET"])
 @required_user_type(["seller"])
 def get_listing(ulid):
-    listing = Listing.query.filter_by(id=ulid).first()
+    seller_id = get_jwt_identity()
 
-    if not listing:
-        return not_found("Listing not found")
+    try:
+        listing = Listing.query.filter_by(id=ulid, seller_id=seller_id).first()
 
-    return success_response(message=f"Listing #{ulid}", data=listing.to_dict())
+        if not listing:
+            return not_found("Listing not found")
+
+        return success_response(
+            message=f"Listing #{ulid}", data=listing.to_dict(), status_code=200
+        )
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return bad_request(
+            f"A database error occurred while fetching the listing: {str(e)}"
+        )
+    except Exception as e:
+        db.session.rollback()
+        return bad_request(
+            f"An unexpected error occurred while fetching the listing: {str(e)}"
+        )
 
 
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["DELETE"])
 @required_user_type(["seller"])
 def delete_listing(ulid):
-    listing = Listing.query.filter_by(id=ulid).first()
+    seller_id = get_jwt_identity()
 
-    if not listing:
-        return not_found("Listing not found: it has been already deleted")
+    try:
+        listing = Listing.query.filter_by(id=ulid, seller_id=seller_id).first()
 
-    listing.delete()
+        if not listing:
+            return not_found("Listing not found: it has been already deleted")
 
-    return success_response(f"Listing #{ulid} has been deleted successfully")
+        listing.delete()
+
+        return success_response(f"Listing #{ulid} has been deleted successfully")
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return bad_request(
+            f"A database error occurred while deleting the listing: {str(e)}"
+        )
+    except Exception as e:
+        db.session.rollback()
+        return bad_request(
+            f"An unexpected error occurred while deleting the listing: {str(e)}"
+        )
 
 
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["PUT"])
 @required_user_type(["seller"])
 def edit_listing(ulid):
+    seller_id = get_jwt_identity()
+
     try:
         validated_data = validate_edited_listing.load(request.get_json())
     except ValidationError as err:
         return bad_request(err.messages)
 
-    quantity = validated_data.get("quantity")
-    price = validated_data.get("price")
-    is_available = quantity != 0
+    try:
+        quantity = validated_data.get("quantity")
+        price = validated_data.get("price")
+        is_available = quantity != 0
 
-    listing = Listing.query.filter_by(id=ulid).first()
+        listing = Listing.query.filter_by(id=ulid, seller_id=seller_id).first()
 
-    if not listing:
-        return not_found("Listing not found.")
+        if not listing:
+            return not_found("Listing not found.")
 
-    listing.update(
-        quantity=quantity,
-        is_available=is_available,
-        price=price,
-    )
+        listing.update(
+            quantity=quantity,
+            is_available=is_available,
+            price=price,
+        )
 
-    return success_response(f"Listing #{ulid} edited successfully.")
+        return success_response(data=listing.id, status_code=200)
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return bad_request(
+            f"A database error occurred while editing the listing: {str(e)}"
+        )
+    except Exception as e:
+        db.session.rollback()
+        return bad_request(
+            f"An unexpected error occurred while editing the listing: {str(e)}"
+        )

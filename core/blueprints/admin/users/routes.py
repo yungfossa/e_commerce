@@ -74,10 +74,17 @@ def get_users():
 @admin_users_bp.route("/admin/users/<string:user_ulid>", methods=["GET"])
 @required_user_type(["admin"])
 def get_user(user_ulid):
-    user = User.query.get(user_ulid)
-    if not user:
-        return not_found(message="User not found")
-    return success_response(message="User", data=user.to_dict(rules=("-password",)))
+    try:
+        user = User.query.get(user_ulid)
+        if not user:
+            return not_found(message="User not found")
+        return success_response(message="User", data=user.to_dict(rules=("-password",)))
+    except SQLAlchemyError:
+        return handle_exception(
+            message="Error while fetching the user from the database"
+        )
+    except Exception:
+        return handle_exception(message="Unexpected error occurred while fetching user")
 
 
 @admin_users_bp.route("/admin/users/<string:user_ulid>", methods=["POST"])
