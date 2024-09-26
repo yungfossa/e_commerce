@@ -1,6 +1,6 @@
 import re
 from functools import wraps
-from typing import List
+from typing import Any, List, Optional
 
 from flask import current_app, jsonify, render_template, url_for
 from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
@@ -34,11 +34,19 @@ def required_user_type(types: List[str]):
     return decorator
 
 
-def success_response(message: str, data=None, status_code=200):
-    response = {"message": message}
-    if data:
+def success_response(
+    message: Optional[str] = None, data: Any = None, status_code: int = 200
+):
+    response = {}
+    if message is not None:
+        response["message"] = message
+    if data is not None:
         response["data"] = data
-    return jsonify(response), status_code
+
+    if not response:
+        return "ok", status_code
+    else:
+        return jsonify(response), status_code
 
 
 def send_email(subject, sender, recipients, html_body, text_body=None):
@@ -61,7 +69,7 @@ def send_confirmation_email(user: User):
             confirmation_url=confirm_url,
         ),
     )
-    return success_response(f"Verification mail sent successfully to {user.email}")
+    return success_response(status_code=200)
 
 
 def send_password_reset_email(user: User):
@@ -77,7 +85,7 @@ def send_password_reset_email(user: User):
             reset_url=reset_password_url,
         ),
     )
-    return success_response(f"Password reset mail sent successfully to {user.email}")
+    return success_response(status_code=200)
 
 
 def send_order_confirmation_email(user: User, order_id: str):
@@ -91,9 +99,7 @@ def send_order_confirmation_email(user: User, order_id: str):
             order_id=order_id,
         ),
     )
-    return success_response(
-        f"Order confirmation email sent successfully to {user.email}"
-    )
+    return success_response(status_code=200)
 
 
 def send_order_cancellation_email(user: User, order_id: str):
@@ -107,6 +113,4 @@ def send_order_cancellation_email(user: User, order_id: str):
             order_id=order_id,
         ),
     )
-    return success_response(
-        f"Order cancellation email sent successfully to {user.email}"
-    )
+    return success_response(status_code=200)
