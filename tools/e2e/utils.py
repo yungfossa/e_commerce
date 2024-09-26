@@ -66,3 +66,11 @@ def before(before_func):
         func()
 
     return decorator
+
+
+def after(after_func):
+    def decorator(func):
+        func()
+        after_func()
+
+    return decorator
