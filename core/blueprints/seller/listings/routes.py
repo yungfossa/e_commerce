@@ -131,8 +131,7 @@ def create_listing():
         )
 
         return success_response(
-            message="Listing added successfully",
-            data=listing.id,
+            data={"id": listing.id},
             status_code=201,
         )
     except SQLAlchemyError as e:
@@ -219,13 +218,13 @@ def edit_listing(ulid):
         if not listing:
             return not_found("Listing not found.")
 
-        listing.update(
+        _listing = listing.update(
             quantity=quantity,
             is_available=is_available,
             price=price,
         )
 
-        return success_response(data=listing.id, status_code=200)
+        return success_response(data={"id": _listing.id}, status_code=200)
     except SQLAlchemyError as e:
         db.session.rollback()
         return bad_request(

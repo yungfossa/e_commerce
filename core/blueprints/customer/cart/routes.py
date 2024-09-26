@@ -67,7 +67,7 @@ def get_cart():
             .all()
         )
         return success_response(
-            message="Customer cart", data=cart_summary(cart_entries)
+            message="Customer cart", data=cart_summary(cart_entries), status_code=200
         )
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -133,7 +133,7 @@ def upsert_cart_entry():
             listing_id=listing_id,
         )
 
-        return success_response(status_code=201)
+        return success_response(data={"id": _ce.id}, status_code=201)
     except SQLAlchemyError:
         db.session.rollback()
         return handle_exception(
@@ -173,14 +173,18 @@ def remove_cart_item():
         db.session.commit()
 
         if deleted_count == 0:
-            return success_response(message="No cart items were found for removal")
+            return success_response(
+                message="No cart items were found for removal", status_code=200
+            )
         elif deleted_count < len(cart_item_ids):
             return success_response(
-                message=f"{deleted_count} out of {len(cart_item_ids)} cart items were removed successfully"
+                message=f"{deleted_count} out of {len(cart_item_ids)} cart items were removed successfully",
+                status_code=200,
             )
         else:
             return success_response(
-                message="All specified cart items have been removed successfully"
+                message="All specified cart items have been removed successfully",
+                status_code=200,
             )
 
     except SQLAlchemyError as e:

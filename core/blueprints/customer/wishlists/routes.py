@@ -115,9 +115,9 @@ def add_wishlist_entry(ulid):
         if wishlist_entry:
             return bad_request(message="The listing product is already in the wishlist")
 
-        WishListEntry.create(wishlist_id=wishlist.id, listing_id=listing_id)
+        _we = WishListEntry.create(wishlist_id=wishlist.id, listing_id=listing_id)
 
-        return success_response(message="Wishlist entry added successfully")
+        return success_response(data={"id": _we.id}, status_code=201)
     except SQLAlchemyError as e:
         db.session.rollback()
         return bad_request(f"Database error occurred: {str(e)}")
@@ -205,10 +205,14 @@ def upsert_wishlist():
             if not wishlist:
                 return bad_request(message=WISHLIST_NOT_FOUND)
             wishlist.update(name=wishlist_name)
-            return success_response(message="Wishlist updated successfully")
+            return success_response(
+                message="Wishlist updated successfully", status_code=200
+            )
         else:
             wishlist = WishList.create(name=wishlist_name, customer_id=customer_id)
-            return success_response(message="Wishlist created successfully")
+            return success_response(
+                message="Wishlist created successfully", data={"id": wishlist.id}
+            )
     except SQLAlchemyError as e:
         db.session.rollback()
         return bad_request(f"Database error occurred: {str(e)}")

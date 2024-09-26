@@ -31,7 +31,7 @@ validate_order_summary_filters = OrderSummaryFilterSchema()
 
 @customer_orders_bp.route("/orders", methods=["POST"])
 @required_user_type(["customer"])
-def create_orders():
+def create_order():
     customer_id = get_jwt_identity()
 
     try:
@@ -90,9 +90,7 @@ def create_orders():
         if config_name != "development":
             send_order_confirmation_email(customer_id, new_order.id)
 
-        return success_response(
-            message="Order created successfully", data={"order_id": new_order.id}
-        )
+        return success_response(data={"id": new_order.id}, status_code=201)
     except SQLAlchemyError as e:
         db.session.rollback()
         return handle_exception(
@@ -138,7 +136,9 @@ def get_order_details(order_ulid):
             ],
         }
         return success_response(
-            message="Order details retrieved successfully", data=order_data
+            message="Order details retrieved successfully",
+            data=order_data,
+            status_code=200,
         )
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -216,6 +216,7 @@ def get_orders_summary():
                     "total_items": total_items,
                 },
             },
+            status_code=200,
         )
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -255,9 +256,7 @@ def delete_order(order_ulid):
         if config_name != "development":
             send_order_cancellation_email(customer_id, order.id)
 
-        return success_response(
-            message="Order cancelled successfully", data={"order_id": order.id}
-        )
+        return success_response(status_code=200)
     except SQLAlchemyError as e:
         db.session.rollback()
         return handle_exception(

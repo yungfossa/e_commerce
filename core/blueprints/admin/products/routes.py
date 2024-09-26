@@ -40,14 +40,18 @@ def create_product():
             name=name, description=description, image_src=image_src, category_id=c.id
         )
 
-        return success_response(status_code=201)
-    except SQLAlchemyError:
-        db.session.rollback()
-        return handle_exception(message="An error occurred while creating the product")
-    except Exception:
+        return success_response(data={"id": _p.id}, status_code=201)
+    except SQLAlchemyError as e:
         db.session.rollback()
         return handle_exception(
-            message="An unexpected error occurred while creating the product"
+            message="An error occurred while creating the product",
+            error=str(e),
+        )
+    except Exception as e:
+        db.session.rollback()
+        return handle_exception(
+            message="An unexpected error occurred while creating the product",
+            error=str(e),
         )
 
 
@@ -160,7 +164,7 @@ def create_category():
     except IntegrityError:
         return bad_request(error="Product category already exists")
 
-    return success_response(status_code=201)
+    return success_response(data={"id": _pc.id}, status_code=201)
 
 
 @admin_products_bp.route("/admin/category", methods=["DELETE"])

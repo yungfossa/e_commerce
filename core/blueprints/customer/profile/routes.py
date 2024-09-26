@@ -195,7 +195,7 @@ def get_reviews():
             "reviews": review_list,
         }
 
-        return success_response(message="Reviews", data=response)
+        return success_response(message="Reviews", data=response, status_code=200)
     except SQLAlchemyError as e:
         db.session.rollback()
         return handle_exception(
@@ -230,7 +230,7 @@ def create_review(product_ulid, listing_ulid):
             listing_id=listing_ulid,
         )
 
-        return success_response(status_code=201)
+        return success_response(data={"id": _lr.id}, status_code=201)
     except SQLAlchemyError as e:
         db.session.rollback()
         return handle_exception(
