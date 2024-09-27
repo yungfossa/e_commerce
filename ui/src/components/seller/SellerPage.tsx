@@ -5,7 +5,7 @@ import Header from "../../shared/Header.tsx";
 import { useAppSelector } from "../../hooks.ts";
 import Client from "../../shared/client/client.tsx";
 
-export default function() {
+export default function () {
 	let { id } = useParams();
 
 	const access_token = useAppSelector((s) => s.user.access_token);
@@ -15,29 +15,23 @@ export default function() {
 	const [sellerReviews, setSellerReviews] = useState(null);
 
 	useEffect(() => {
-		client.get(`http://localhost:5000/products/${id}`)
-			.then((r) => {
-				setSellerListings(r.data);
-			});
-
-
+		client.get(`http://localhost:5000/products/${id}`).then((r) => {
+			setSellerListings(r.data);
+		});
 	}, []);
 
 	useEffect(() => {
-		client.get(`http://localhost:5000/products/${id}/reviews`)
-			.then((r) => {
-				setSellerReviews(r.data);
-			});
+		client.get(`http://localhost:5000/products/${id}/reviews`).then((r) => {
+			setSellerReviews(r.data);
+		});
 	}, []);
 
 	return (
 		<>
 			<Header />
-
 			Listings:
 			<br />
-
-			{sellerListings?.map(l => {
+			{sellerListings?.map((l) => {
 				return (
 					<>
 						<Link to={`/products/${l.product.id}/${l.id}`}>
@@ -46,20 +40,16 @@ export default function() {
 						<br />
 					</>
 				);
-
 			})}
-
 			Reviews:
 			<br />
-
-			{sellerReviews?.map(review => {
+			{sellerReviews?.map((review) => {
 				return (
 					<>
 						{review.title} - {review.description} - {review.rating}
 						<br />
 					</>
 				);
-
 			})}
 		</>
 	);

@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./user.ts";
+import { api } from "./api.ts";
 
 const reHydrateStore = () => {
 	if (localStorage.getItem("applicationState") !== null) {
@@ -18,10 +19,13 @@ const localStorageMiddleware = ({ getState }) => {
 const store = configureStore({
 	reducer: {
 		user: userReducer,
+		[api.reducerPath]: api.reducer,
 	},
 	preloadedState: reHydrateStore(),
 	middleware: (getDefaultMiddleware) =>
-		getDefaultMiddleware().concat(localStorageMiddleware),
+		getDefaultMiddleware()
+			.concat(localStorageMiddleware)
+			.concat(api.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

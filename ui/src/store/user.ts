@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query";
 
 export const authenticate = createAsyncThunk(
 	"user/authenticate",
@@ -6,7 +7,6 @@ export const authenticate = createAsyncThunk(
 		{ email, password }: { email: string; password: string },
 		{ rejectWithValue },
 	): Promise<string> => {
-		console.log("requested");
 		return await fetch("http://localhost:5000/login", {
 			method: "POST",
 			headers: {
@@ -14,7 +14,7 @@ export const authenticate = createAsyncThunk(
 			},
 			body: JSON.stringify({ email, password }),
 		})
-			.then((r) => {
+			.then(async (r) => {
 				if (!r.ok) {
 					return r.json().then((r) => {
 						throw new Error(r.message);
@@ -29,13 +29,29 @@ export const authenticate = createAsyncThunk(
 	},
 );
 
+interface State {
+	access_token: string;
+	status: Status;
+	profile: Profile | undefined;
+}
+
 type Status = "unknown" | "pending" | "success" | "failed";
+
+interface Profile {
+	birth_date: string;
+	email: string;
+	first_name: string;
+	last_name: string;
+	phone_number: string;
+	profile_img: string;
+}
 
 export const userSlice = createSlice({
 	name: "user",
 	initialState: {
 		access_token: "",
-		status: "unknown" as Status,
+		status: "unknown",
+		profile: undefined,
 	},
 	reducers: {},
 	extraReducers: (builder) => {

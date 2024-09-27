@@ -42,15 +42,17 @@ const Category = styled.div`
 const Store = styled.div`
 `;
 
-function createAddToCartFn(client, showAlert, pid, lid) {
+function createAddToCartFn(client, showAlert, lid) {
 	return () => {
-		client.post("http://localhost:5000/cart", {
-			"id": lid,
-			"amount": 1,
-		}).then((r) => {
-			showAlert(JSON.stringify(r))
-		})
-	}
+		client
+			.post("http://localhost:5000/cart", {
+				id: lid,
+				amount: 1,
+			})
+			.then((r) => {
+				showAlert(JSON.stringify(r));
+			});
+	};
 }
 
 export default function ProductsPage() {
@@ -66,20 +68,16 @@ export default function ProductsPage() {
 	const [listing, setListing] = useState<any>(null);
 
 	useEffect(() => {
-		if (access_token === "") {
-			return;
-		}
-
-		client.post(`http://localhost:5000/products/${pid}`, {
-			offset: 0,
-			limit: 100,
-		})
+		client
+			.post(`http://localhost:5000/products/${pid}`, {
+				offset: 0,
+				limit: 100,
+			})
 			.then((r) => {
-				console.log(lid);
 				setProduct(r.data);
 				if (lid) {
 					console.log("filtering");
-					setListing(r.data.listings.filter(r => r.id == lid)[0]);
+					setListing(r.data.listings.filter((r) => r.id == lid)[0]);
 				} else {
 					setListing(r.data.listings[0]);
 				}
@@ -88,7 +86,7 @@ export default function ProductsPage() {
 				showAlert("An error occured", "error");
 				navigate("/");
 			});
-	}, [access_token, lid]);
+	}, []);
 
 	if (product === null) {
 		return "Loading...";
@@ -97,17 +95,21 @@ export default function ProductsPage() {
 	return (
 		<>
 			<Header />
-
 			<Wrapper>
 				<ProductWrapper>
 					<Title>{product.name}</Title>
 					<Category>{product.category.name}</Category>
 					<Store>
-						{listing.seller.name && <Link to={`/seller/${listing.seller.id}`}>View {listing.seller.name} store</Link>}
+						{listing.seller.name && (
+							<Link to={`/seller/${listing.seller.id}`}>
+								View {listing.seller.name} store
+							</Link>
+						)}
 					</Store>
 					<img height="250px" width="250px" src={product.image_src} />
 					<br />
-					For small price of {listing?.price || "Item not available, sorry bud."} dolla.
+					For small price of{" "}
+					{listing?.price || "Item not available, sorry bud."} dolla.
 				</ProductWrapper>
 
 				<ListingWrapper>
@@ -121,17 +123,20 @@ export default function ProductsPage() {
 											<p>only {l.quantity} left</p>
 											<p>{l.price} dolla</p>
 										</Link>
-										<Button
-											text="buy"
-											onClick={createAddToCartFn(client, showAlert, pid, l.id)}>
-										</Button>
+										{access_token ? (
+											<Button
+												text="buy"
+												onClick={createAddToCartFn(client, showAlert, l.id)}
+											></Button>
+										) : (
+											<Link to="/login">Wanna buy? Login</Link>
+										)}
 									</ListingsWrapper>
 								);
 							})}
 					</ul>
 				</ListingWrapper>
 			</Wrapper>
-
 			Reviews:
 			<ul>
 				{product &&
@@ -144,8 +149,7 @@ export default function ProductsPage() {
 									<p>{l.rating}</p>
 								</ListingsWrapper>
 							);
-						})
-
+						});
 					})}
 			</ul>
 		</>

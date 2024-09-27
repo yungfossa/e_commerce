@@ -1,66 +1,59 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import { useAppDispatch, useAppSelector } from "./hooks.ts";
-import { authenticate } from "./store/user.ts";
-import AlertContext from "./components/Alert.tsx";
+import { useAppSelector } from "./hooks.ts";
 import Header from "./shared/Header.tsx";
 import { Link } from "react-router-dom";
+import Client from "./shared/client/client.tsx";
+import Card from "./shared/Card.tsx";
 
 const ProductsWrapper = styled.div`
+	width: 100%;
+	margin: auto;
+
 	display: grid;
-	grid-template-columns: auto auto auto auto auto;
-
-	padding: 100px;
+	grid-template-columns: auto auto auto auto;
+	justify-content: space-around;
+	gap: 5%;
 `;
 
-const ProductWrapper = styled.div`
-`;
+export interface Product {
+	category: string;
+	description: string;
+	id: string;
+	image_src: string;
+	name: string;
+}
 
-function App() {
+export default function App() {
 	const access_token = useAppSelector((s) => s.user.access_token);
-	const [products, setProducts] = useState<any[]>([]);
+	const client = new Client(access_token);
+
+	const [products, setProducts] = useState<Product[]>([]);
 
 	useEffect(() => {
-		if (access_token === "") {
-			return;
-		}
-
-		fetch("http://localhost:5000/products", {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${access_token}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ offset: 0, limit: 10 }),
-		})
-			.then((r) => r.json())
+		client
+			.post("http://localhost:5000/products", { offset: 0, limit: 10 })
 			.then((r) => {
-				setProducts(r.data);
+				setProducts(r.data as Product[]);
 			});
-	}, [access_token]);
+	}, []);
 
 	return (
 		<>
 			<Header />
 
 			<ProductsWrapper>
-				{products &&
-					products.map((product) => {
-						return (
-							<ProductWrapper>
-								<Link to={`/products/${product.id}`}>
-									<img height="250px" width="250px" src={product.image_src} />
-									<p>{product.name}</p>
-									<p>{product.category.name}</p>
-								</Link>
-							</ProductWrapper>
-						);
-					})}
+				{products?.map((product) => {
+					return (
+						<Card key={product.id}>
+							<Link to={`/products/${product.id}`}>
+								<img height="250px" width="250px" src={product.image_src} />
+								<p>{product.name}</p>
+							</Link>
+						</Card>
+					);
+				})}
 			</ProductsWrapper>
 		</>
 	);
 }
-
-export default App;

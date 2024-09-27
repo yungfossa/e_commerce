@@ -1,8 +1,4 @@
-import { React, useState, useEffect } from "react";
-import { useAppSelector } from "../hooks.ts";
-
 export default class Client {
-
 	access_token: string;
 
 	constructor(access_token: string) {
@@ -14,7 +10,11 @@ export default class Client {
 			headers: {
 				Authorization: `Bearer ${this.access_token}`,
 			},
-		}).then((r) => r.json());
+		})
+			.then((r) => r.json())
+			.catch((e) => {
+				throw e;
+			});
 	}
 
 	async post(url: string, body: any): Promise<any> {
@@ -25,6 +25,10 @@ export default class Client {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify(body),
-		}).then((r) => r.json());
+		})
+			.then((r) => r.json())
+			.catch((e) => {
+				throw e;
+			});
 	}
 }

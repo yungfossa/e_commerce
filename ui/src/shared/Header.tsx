@@ -1,6 +1,10 @@
 import { React, useState, useEffect } from "react";
 import styled from "styled-components";
-import { faGlobe, faSearch, faShoppingCart } from "@fortawesome/free-solid-svg-icons";
+import {
+	faGlobe,
+	faSearch,
+	faShoppingCart,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import TextInput from "../shared/input/TextInput.tsx";
 import { useAppSelector } from "../hooks.ts";
@@ -46,11 +50,14 @@ export default function Header() {
 
 	return (
 		<Wrapper>
-			<Link to="/" style={{
-				color: "white",
-				textDecoration: "none",
-			}}>
-				< Section >
+			<Link
+				to="/"
+				style={{
+					color: "white",
+					textDecoration: "none",
+				}}
+			>
+				<Section>
 					<FontAwesomeIcon
 						style={{ "margin-right": "0.75rem" }}
 						size="2x"
@@ -58,35 +65,40 @@ export default function Header() {
 					/>
 					<Title>Shop Sphere</Title>
 				</Section>
-			</Link >
+			</Link>
 			<Section grow={true}>
 				<TextInput icon={faSearch} placeholder="Search..." />
 			</Section>
-			{
-				profile ? (
-					<Section>
-						<Link to="/me" style={{ "color": "white", textDecoration: "none" }}>
-							Welcome back <br /> <u><b>{profile.first_name}</b></u>
-						</Link>
-						<div style={{ paddingLeft: "3rem" }} />
-						<Link to="/cart">
-							<FontAwesomeIcon
-								style={{ "margin-right": "0.75rem", "color": "white" }}
-								size="2x"
-								icon={faShoppingCart}
-							/>
-						</Link>
-					</Section>
-				) : (
-					<Section>
-						<Link to="/login" style={{ "color": "white" }}>Sign In</Link>
-						<div style={{ paddingLeft: "0.5rem" }} />
-						or
-						<div style={{ paddingLeft: "0.5rem" }} />
-						<Link to="/register" style={{ "color": "white" }}>Sign Up</Link>
-					</Section>
-				)
-			}
-		</Wrapper >
+			{profile ? (
+				<Section>
+					<Link to="/me" style={{ color: "white", textDecoration: "none" }}>
+						Welcome back <br />{" "}
+						<u>
+							<b>{profile.first_name}</b>
+						</u>
+					</Link>
+					<div style={{ paddingLeft: "3rem" }} />
+					<Link to="/cart">
+						<FontAwesomeIcon
+							style={{ "margin-right": "0.75rem", color: "white" }}
+							size="2x"
+							icon={faShoppingCart}
+						/>
+					</Link>
+				</Section>
+			) : (
+				<Section>
+					<Link to="/login" style={{ color: "white" }}>
+						Sign In
+					</Link>
+					<div style={{ paddingLeft: "0.5rem" }} />
+					or
+					<div style={{ paddingLeft: "0.5rem" }} />
+					<Link to="/register" style={{ color: "white" }}>
+						Sign Up
+					</Link>
+				</Section>
+			)}
+		</Wrapper>
 	);
 }
