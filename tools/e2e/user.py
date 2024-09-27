@@ -150,6 +150,7 @@ class User:
         r = s.get(
             f"{PREFIX}/products/{product_id}",
             headers={"Authorization": f"Bearer {self.access_token}"},
+            json={"offset": 0, "limit": 10},
         )
 
         return r.json().get("data"), r.status_code
@@ -170,7 +171,5 @@ class User:
             headers={"Authorization": f"Bearer {self.access_token}"},
             json={"title": title, "description": description, "rating": rating},
         )
-
-        print(r.json())
 
         return r.json().get("data"), r.status_code

@@ -12,7 +12,7 @@ def validate_product_category(title):
     with db.session() as session:
         category = session.query(ProductCategory).filter_by(title=title).first()
         if not category:
-            raise ValidationError(f"Invalid category: {title}")
+            raise ValidationError(message=f"Invalid category: {title}")
 
 
 class ProductsFilterSchema(Schema):

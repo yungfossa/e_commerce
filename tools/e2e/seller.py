@@ -43,7 +43,7 @@ class Seller:
             f"{PREFIX}/seller/listings",
             headers={"Authorization": f"Bearer {self.access_token}"},
             json={
-                "id": product_id,
+                "product_id": product_id,
                 "quantity": quantity,
                 "price": price,
                 "product_state": product_state,

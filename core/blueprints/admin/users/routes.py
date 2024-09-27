@@ -17,8 +17,6 @@ admin_users_bp = Blueprint("admin_users", __name__)
 validation_delete_user = AdminDeleteUserSchema()
 validation_users_filters = AdminUsersFiltersSchema()
 
-DELETION_PERIOD_DAYS = 30
-
 
 @admin_users_bp.route("/admin/users", methods=["GET"])
 @required_user_type(["admin"])
@@ -26,7 +24,7 @@ def get_users():
     try:
         data = validation_users_filters.load(request.get_json())
     except ValidationError as err:
-        return handle_exception(message="Validation error", errors=err.messages)
+        return handle_exception(error=err.messages)
 
     try:
         limit = data.get("limit")
@@ -49,7 +47,6 @@ def get_users():
         users = query.limit(limit).offset(offset).all()
 
         return success_response(
-            message="Users",
             data={
                 "users": [u.to_dict(rules=("-password",)) for u in users],
                 "pagination": {
@@ -59,16 +56,12 @@ def get_users():
                 },
             },
         )
-    except SQLAlchemyError:
-        return handle_exception(
-            message="Error while fetching the users from the database"
-        )
-    except AttributeError:
-        return handle_exception(message="Invalid sort_by field")
-    except Exception:
-        return handle_exception(
-            message="Unexpected error occurred while fetching users"
-        )
+    except SQLAlchemyError as sql_err:
+        return handle_exception(error=str(sql_err))
+    except AttributeError as att_err:
+        return handle_exception(error=str(att_err))
+    except Exception as e:
+        return handle_exception(error=str(e))
 
 
 @admin_users_bp.route("/admin/users/<string:user_ulid>", methods=["GET"])
@@ -77,14 +70,14 @@ def get_user(user_ulid):
     try:
         user = User.query.get(user_ulid)
         if not user:
-            return not_found(message="User not found")
-        return success_response(message="User", data=user.to_dict(rules=("-password",)))
-    except SQLAlchemyError:
-        return handle_exception(
-            message="Error while fetching the user from the database"
+            return not_found(error="User not found")
+        return success_response(
+            data=user.to_dict(rules=("-password",)), status_code=200
         )
-    except Exception:
-        return handle_exception(message="Unexpected error occurred while fetching user")
+    except SQLAlchemyError as sql_err:
+        return handle_exception(error=str(sql_err))
+    except Exception as e:
+        return handle_exception(error=str(e))
 
 
 @admin_users_bp.route("/admin/users/<string:user_ulid>", methods=["POST"])
@@ -93,37 +86,33 @@ def delete_user(user_ulid):
     try:
         data = validation_delete_user.load(request.get_json())
     except ValidationError as err:
-        return handle_exception(message="Validation error", errors=err.messages)
+        return handle_exception(error=err.messages)
 
     try:
         reason = data.get("reason")
 
         user = User.query.get(user_ulid)
         if not user:
-            return not_found(message="User not found")
+            return not_found(error="User not found")
 
         if user.user_type == UserType.ADMIN:
-            return handle_exception(message="You cannot delete an admin user")
+            return handle_exception(error="You cannot delete an admin user")
 
         existing_delete_request = DeleteRequest.query.filter_by(
             user_id=user_ulid
         ).first()
         if existing_delete_request:
             return handle_exception(
-                message="A delete request already exists for this user"
+                error="A delete request already exists for this user"
             )
 
-        to_be_removed_at = datetime.now(UTC) + timedelta(days=DELETION_PERIOD_DAYS)
+        to_be_removed_at = datetime.now(UTC) + timedelta(days=30)
         _delete_request = DeleteRequest.create(
             user_id=user_ulid, reason=reason, to_be_removed_at=to_be_removed_at
         )
 
         return success_response(status_code=200)
-    except SQLAlchemyError:
-        return handle_exception(
-            message="Error while creating delete request in the database"
-        )
-    except Exception:
-        return handle_exception(
-            message="Unexpected error occurred while processing delete user request"
-        )
+    except SQLAlchemyError as sql_err:
+        return handle_exception(error=str(sql_err))
+    except Exception as e:
+        return handle_exception(error=str(e))

@@ -9,7 +9,6 @@ from core import db
 from core.blueprints.errors.handlers import (
     bad_request,
     handle_exception,
-    internal_server_error,
     not_found,
 )
 from core.blueprints.utils import required_user_type, success_response
@@ -44,7 +43,7 @@ def get_profile():
         customer = Customer.query.get(customer_id)
 
         if not customer:
-            return handle_exception(message="Customer not found", status_code=404)
+            return not_found(error="Customer not found")
 
         profile_data = {
             "email": customer.email,
@@ -55,18 +54,14 @@ def get_profile():
             "profile_img": customer.profile_img,
         }
 
-        return success_response(
-            message="Customer profile retrieved successfully", data=profile_data
-        )
-    except SQLAlchemyError as e:
+        return success_response(data=profile_data, status_code=200)
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="A database error occurred while fetching the profile. Please try again later.",
-            error=str(e),
+            error=str(sql_err),
         )
     except Exception as e:
         return handle_exception(
-            message="An unexpected error occurred while fetching the profile. Please try again later.",
             error=str(e),
         )
 
@@ -79,7 +74,7 @@ def edit_profile():
     try:
         validated_data = validate_edit_profile.load(request.get_json())
     except ValidationError as verr:
-        return bad_request(verr.messages)
+        return bad_request(error=verr.messages)
 
     try:
         customer = Customer.query.filter_by(customer_id=customer_id).first()
@@ -91,16 +86,15 @@ def edit_profile():
         if update_data:
             customer.update(**update_data)
 
-        return success_response(message="Profile edited successfully")
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return handle_exception(
-            message="An error occurred while updating the profile", error=str(e)
+        return success_response(
+            status_code=200,
         )
+    except SQLAlchemyError as sql_err:
+        db.session.rollback()
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return internal_server_error(
-            message="An unexpected error occurred while updating the profile. Please try again later.",
+        return handle_exception(
             error=str(e),
         )
 
@@ -113,7 +107,7 @@ def delete_profile():
     try:
         validated_data = validate_delete_profile.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         reason = validated_data.get("reason")
@@ -123,7 +117,7 @@ def delete_profile():
         requested_at = datetime.now(UTC)
         to_be_removed_at = requested_at + timedelta(days=30)
 
-        dr = DeleteRequest.create(
+        _dr = DeleteRequest.create(
             reason=reason,
             requested_at=requested_at,
             user_id=customer.id,
@@ -131,21 +125,15 @@ def delete_profile():
         )
 
         return success_response(
-            message=f"your account will be deleted in 30 days."
-            f"you can still use it until {dr.expired_at.strftime('%d/%m/%Y')}.",
             status_code=200,
         )
-    except SQLAlchemyError as e:
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(
-            message="An error occurred while deleting the profile", error=str(e)
-        )
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return internal_server_error(
-            message="An unexpected error occurred while deleting the profile. Please try again later.",
-            error=str(e),
-        )
+        return handle_exception(error=str(e))
 
 
 @customer_profile_bp.route("/profile/reviews", methods=["GET"])
@@ -156,7 +144,7 @@ def get_reviews():
     try:
         query_params = validate_review_filters.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         order_by = query_params.get("order_by")
@@ -195,16 +183,17 @@ def get_reviews():
             "reviews": review_list,
         }
 
-        return success_response(message="Reviews", data=response, status_code=200)
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return handle_exception(
-            message="An error occurred while getting customer reviews", error=str(e)
+        return success_response(
+            data=response,
+            status_code=200,
         )
+
+    except SQLAlchemyError as sql_err:
+        db.session.rollback()
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return internal_server_error(
-            message="An unexpected error occurred while getting customer reviews. Please try again later.",
+        return handle_exception(
             error=str(e),
         )
 
@@ -219,7 +208,7 @@ def create_review(product_ulid, listing_ulid):
     try:
         data = validate_create_review.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         _lr = ListingReview.create(
@@ -230,16 +219,17 @@ def create_review(product_ulid, listing_ulid):
             listing_id=listing_ulid,
         )
 
-        return success_response(data={"id": _lr.id}, status_code=201)
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return handle_exception(
-            message="An error occurred while createing a review", error=str(e)
+        return success_response(
+            data={"id": _lr.id},
+            status_code=201,
         )
+
+    except SQLAlchemyError as sql_err:
+        db.session.rollback()
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return internal_server_error(
-            message="An unexpected error occurred while creating a review. Please try again later.",
+        return handle_exception(
             error=str(e),
         )
 
@@ -251,7 +241,7 @@ def edit_review(review_ulid):
     try:
         validated_data = validate_edit_review.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         review = ListingReview.query.filter_by(
@@ -259,7 +249,7 @@ def edit_review(review_ulid):
         ).first()
 
         if not review:
-            return not_found(message="Review not found")
+            return not_found(error="Review not found")
 
         update_data = {
             key: value for key, value in validated_data.items() if value is not None
@@ -268,16 +258,18 @@ def edit_review(review_ulid):
         if update_data:
             review.update(**update_data)
 
-        return success_response(message="Review edited successfully", status_code=200)
-    except SQLAlchemyError as e:
+        return success_response(
+            status_code=200,
+        )
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="An error occurred while updating the profile", error=str(e)
+            error=str(sql_err),
         )
     except Exception as e:
         db.session.rollback()
-        return internal_server_error(
-            message="An unexpected error occurred while updating the profile. Please try again later.",
+        return handle_exception(
             error=str(e),
         )
 
@@ -293,20 +285,19 @@ def delete_customer_review(review_ulid):
         ).first()
 
         if not review:
-            return not_found(message="Review not found or already deleted")
+            return not_found(error="Review not found or already deleted")
 
         review.delete()
 
-        return success_response(message="Review successfully deleted", status_code=200)
-
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return handle_exception(
-            message="A database error occurred while deleting the review.", error=str(e)
+        return success_response(
+            status_code=200,
         )
+
+    except SQLAlchemyError as sql_err:
+        db.session.rollback()
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
         return handle_exception(
-            message="An unexpected error occurred while deleting the review.",
             error=str(e),
         )

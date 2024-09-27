@@ -4,7 +4,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from core import db
-from core.blueprints.errors.handlers import bad_request, handle_exception
+from core.blueprints.errors.handlers import bad_request, handle_exception, not_found
 from core.blueprints.utils import required_user_type, success_response
 from core.models import Cart, CartEntry, Listing, Product, ProductCategory, Seller
 from core.validators.customer.customer_cart import (
@@ -66,18 +66,14 @@ def get_cart():
             )
             .all()
         )
-        return success_response(
-            message="Customer cart", data=cart_summary(cart_entries), status_code=200
-        )
-    except SQLAlchemyError as e:
+        return success_response(data=cart_summary(cart_entries), status_code=200)
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="A database error occurred while fetching the cart. Please try again later.",
-            error=str(e),
+            error=str(sql_err),
         )
     except Exception as e:
         return handle_exception(
-            message="An unexpected error occurred while fetching the cart. Please try again later.",
             error=str(e),
         )
 
@@ -90,7 +86,7 @@ def upsert_cart_entry():
     try:
         validated_data = validation_upsert_cart.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         listing_id = validated_data.get("listing_id")
@@ -101,7 +97,7 @@ def upsert_cart_entry():
         ).first()
 
         if not cart_entry:
-            return bad_request(message="Cart entry not found")
+            return not_found(error="Cart entry not found")
 
         if amount == 0:
             if cart_entry:
@@ -115,17 +111,19 @@ def upsert_cart_entry():
         listing = Listing.query.filter_by(id=cart_entry.listing_id).first()
 
         if not listing:
-            return bad_request("Listing not found")
+            return bad_request(error="Listing not found")
 
         if listing.quantity < amount:
             return bad_request(
-                message=f"The selected amount {amount} is "
+                error=f"The selected amount {amount} is "
                 f"bigger than the available quantity ({listing.quantity})"
             )
 
         if cart_entry:
             cart_entry.update(amount=amount)
-            return success_response(message="Cart entry amount updated successfully")
+            return success_response(
+                message="Cart entry amount updated successfully", status_code=200
+            )
 
         _ce = CartEntry.create(
             amount=amount,
@@ -134,16 +132,12 @@ def upsert_cart_entry():
         )
 
         return success_response(data={"id": _ce.id}, status_code=201)
-    except SQLAlchemyError:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(
-            message="A database error occurred while updating the cart. Please try again later."
-        )
-    except Exception:
+        return handle_exception(error=str(sql_err))
+    except Exception as e:
         db.session.rollback()
-        return handle_exception(
-            message="An unexpected error occurred while updating the cart. Please try again later."
-        )
+        return handle_exception(error=str(e))
 
 
 @customer_cart_bp.route("/cart", methods=["DELETE"])
@@ -152,13 +146,13 @@ def remove_cart_item():
     customer_id = get_jwt_identity()
 
     try:
-        schema = RemoveFromCartSchema()
-        validated_data = schema.load(request.get_json())
-        cart_item_ids = validated_data.get("cart_item_ids")
+        validated_data = validation_remove_from_cart.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return handle_exception(error=err.messages)
 
     try:
+        cart_item_ids = validated_data.get("cart_item_ids")
+
         cart_entries = (
             CartEntry.query.join(Cart)
             .filter(CartEntry.id.in_(cart_item_ids), Cart.customer_id == customer_id)
@@ -173,23 +167,15 @@ def remove_cart_item():
         db.session.commit()
 
         if deleted_count == 0:
-            return success_response(
-                message="No cart items were found for removal", status_code=200
-            )
+            return success_response(status_code=200)
         elif deleted_count < len(cart_item_ids):
-            return success_response(
-                message=f"{deleted_count} out of {len(cart_item_ids)} cart items were removed successfully",
-                status_code=200,
-            )
+            return success_response(status_code=200)
         else:
-            return success_response(
-                message="All specified cart items have been removed successfully",
-                status_code=200,
-            )
+            return success_response(status_code=200)
 
     except SQLAlchemyError as e:
         db.session.rollback()
-        return bad_request(f"Database error occurred: {str(e)}")
+        return handle_exception(error=str(e))
     except Exception as e:
         db.session.rollback()
-        return bad_request(f"An unexpected error occurred: {str(e)}")
+        return handle_exception(error=str(e))

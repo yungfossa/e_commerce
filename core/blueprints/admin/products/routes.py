@@ -23,7 +23,7 @@ def create_product():
     try:
         validated_data = validate_add_product.load(request.get_json())
     except ValidationError as verr:
-        return bad_request(verr.messages)
+        return bad_request(error=verr.messages)
 
     try:
         name = validated_data.get("name").title()
@@ -34,25 +34,21 @@ def create_product():
         c = ProductCategory.query.filter_by(title=category).first()
 
         if not c:
-            return bad_request(message="Category not found")
+            return bad_request(error="Category not found")
 
         _p = Product.create(
             name=name, description=description, image_src=image_src, category_id=c.id
         )
 
         return success_response(data={"id": _p.id}, status_code=201)
-    except SQLAlchemyError as e:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="An error occurred while creating the product",
-            error=str(e),
+            error=str(sql_err),
         )
     except Exception as e:
         db.session.rollback()
-        return handle_exception(
-            message="An unexpected error occurred while creating the product",
-            error=str(e),
-        )
+        return handle_exception(error=str(e))
 
 
 @admin_products_bp.route("/admin/products", methods=["GET"])
@@ -61,7 +57,7 @@ def get_products():
     try:
         data = validate_product_filters.load(request.get_json())
     except ValidationError as verr:
-        return bad_request(verr.messages)
+        return bad_request(error=verr.messages)
 
     try:
         limit = data.get("limit")
@@ -79,7 +75,6 @@ def get_products():
         ps = query.limit(limit).offset(offset).all()
 
         return success_response(
-            message="Products",
             data={
                 "products": [p.to_dict() for p in ps],
                 "pagination": {
@@ -88,15 +83,14 @@ def get_products():
                     "offset": offset,
                 },
             },
+            status_code=200,
         )
-    except SQLAlchemyError:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(message="An error occurred while getting products")
-    except Exception:
+        return handle_exception(error=str(sql_err))
+    except Exception as e:
         db.session.rollback()
-        return handle_exception(
-            message="An unexpected error occurred while getting products"
-        )
+        return handle_exception(error=str(e))
 
 
 @admin_products_bp.route("/admin/products/<string:product_ulid>", methods=["GET"])
@@ -105,17 +99,15 @@ def get_product(product_ulid):
     try:
         p = Product.query.get(product_ulid)
         if not p:
-            return not_found(message="Product not found")
+            return not_found(error="Product not found")
 
-        return success_response(message="Product", data=p.to_dict())
-    except SQLAlchemyError:
+        return success_response(data=p.to_dict(), status_code=200)
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(message="An error occurred while getting the product")
-    except Exception:
+        return handle_exception(error=sql_err)
+    except Exception as e:
         db.session.rollback()
-        return handle_exception(
-            message="An unexpected error occurred while getting the product"
-        )
+        return handle_exception(error=str(e))
 
 
 @admin_products_bp.route("/admin/category", methods=["GET"])
@@ -127,26 +119,17 @@ def get_categories():
         limit = data.get("limit", 10)
         offset = data.get("offset", 0)
 
-        query = ProductCategory.query
-
-        if limit is not None:
-            query = query.limit(limit)
-        if offset is not None:
-            query = query.offset(offset)
+        query = ProductCategory.query.limit(limit).offset(offset)
 
         cs = query.all()
 
-        return success_response(
-            message="Product categories", data=[c.to_dict() for c in cs]
-        )
-    except SQLAlchemyError:
+        return success_response(data=[c.to_dict() for c in cs], status_code=200)
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(message="An error occurred while getting categories")
-    except Exception:
+        return handle_exception(error=str(sql_err))
+    except Exception as e:
         db.session.rollback()
-        return handle_exception(
-            message="An unexpected error occurred while getting categories"
-        )
+        return handle_exception(error=str(e))
 
 
 @admin_products_bp.route("/admin/category", methods=["PUT"])
@@ -155,14 +138,14 @@ def create_category():
     try:
         validated_data = validate_add_category.load(request.get_json())
     except ValidationError as verr:
-        return bad_request(verr.messages)
+        return bad_request(error=verr.messages)
 
     title = validated_data.get("title").title()
 
     try:
         _pc = ProductCategory.create(title=title)
-    except IntegrityError:
-        return bad_request(error="Product category already exists")
+    except IntegrityError as int_e:
+        return bad_request(error=str(int_e))
 
     return success_response(data={"id": _pc.id}, status_code=201)
 
@@ -173,7 +156,7 @@ def delete_category():
     try:
         validated_data = validate_remove_category.load(request.get_json())
     except ValidationError as verr:
-        return bad_request(verr.messages)
+        return bad_request(error=verr.messages)
 
     try:
         title = validated_data.get("title").title()
@@ -181,7 +164,7 @@ def delete_category():
         pc = ProductCategory.query.filter_by(title=title).first()
 
         if not pc:
-            return success_response(message="Category already removed")
+            return success_response(message="Category already removed", status_code=200)
 
         # Ensure a generic category exists
         generic_category = ProductCategory.query.filter_by(title="Generic").first()
@@ -200,11 +183,9 @@ def delete_category():
             pc.delete()
 
         return success_response(status_code=200)
-    except SQLAlchemyError:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(message="An error occurred while deleting the category")
-    except Exception:
+        return handle_exception(error=sql_err)
+    except Exception as e:
         db.session.rollback()
-        return handle_exception(
-            message="An unexpected error occurred while deleting the category"
-        )
+        return handle_exception(error=str(e))

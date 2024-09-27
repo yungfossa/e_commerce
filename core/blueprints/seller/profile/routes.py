@@ -9,7 +9,6 @@ from core import db
 from core.blueprints.errors.handlers import (
     bad_request,
     handle_exception,
-    internal_server_error,
 )
 from core.blueprints.utils import required_user_type, success_response
 from core.models import DeleteRequest, Seller, User
@@ -30,7 +29,6 @@ def get_profile():
         seller = Seller.query.filter_by(id=seller_id).first()
 
         return success_response(
-            message="profile",
             data=seller.to_dict(
                 only=(
                     "email",
@@ -42,16 +40,15 @@ def get_profile():
                     "company_name",
                 )
             ),
+            status_code=200,
         )
-    except SQLAlchemyError as e:
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(
-            message="An error occurred while fetching the seller profile", error=str(e)
-        )
+        return handle_exception(error=sql_err)
     except Exception as e:
         db.session.rollback()
-        return internal_server_error(
-            message="An unexpected error occurred while fetching the seller profile. Please try again later.",
+        return handle_exception(
             error=str(e),
         )
 
@@ -76,15 +73,20 @@ def edit_profile():
         if update_data:
             seller.update(**update_data)
 
-        return success_response(data=seller.id, status_code=200)
+        return success_response(
+            data=seller.id,
+            status_code=200,
+        )
 
-    except SQLAlchemyError:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(message="An error occurred while updating the profile")
-    except Exception:
+        return handle_exception(
+            error=str(sql_err),
+        )
+    except Exception as e:
         db.session.rollback()
-        return internal_server_error(
-            message="An unexpected error occurred while updating the profile. Please try again later."
+        return handle_exception(
+            error=str(e),
         )
 
 
@@ -96,7 +98,7 @@ def delete_profile():
     try:
         validated_data = validate_delete_profile.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         reason = validated_data.get("reason")
@@ -106,7 +108,7 @@ def delete_profile():
         requested_at = datetime.now(UTC)
         to_be_removed_at = requested_at + timedelta(days=30)
 
-        dr = DeleteRequest.create(
+        _dr = DeleteRequest.create(
             reason=reason,
             requested_at=requested_at,
             user_id=seller.id,
@@ -114,18 +116,16 @@ def delete_profile():
         )
 
         return success_response(
-            f"Your account will be deleted in 30 days. "
-            f"You can still use it until {dr.to_be_removed_at.strftime('%d/%m/%Y')}."
+            status_code=200,
         )
-    except SQLAlchemyError as e:
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="An error occurred while processing the delete request",
-            error=str(e),
+            error=str(sql_err),
         )
     except Exception as e:
         db.session.rollback()
-        return internal_server_error(
-            message="An unexpected error occurred while processing the delete request. Please try again later.",
+        return handle_exception(
             error=str(e),
         )

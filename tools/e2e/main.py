@@ -53,7 +53,7 @@ def create_category():
 
     (categories, status_code) = u.get_categories()
     assert_eq(status_code, 200)
-    assert_eq(len(categories), 4, "number of categories must equal to 3")
+    assert_eq(len(categories), 4, "number of categories must equal to 4")
 
 
 @test("an admin should be able to create a new product")
@@ -65,7 +65,7 @@ def create_product():
     # initially the products should be empty
     (products, status_code) = u.get_products()
     assert_eq(status_code, 200)
-    assert_eq(products, None)
+    assert_eq(products, [])
 
     (product, status_code) = admin.add_product(
         "iPhone 15",
@@ -98,7 +98,7 @@ def create_listing():
     )
     assert_eq(status_code, 201)
 
-    product_id = product["product_id"]
+    product_id = product["id"]
 
     (listing, status_code) = seller.create_listing(product_id, 10, 19.99, "new")
     assert_eq(status_code, 201)

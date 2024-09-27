@@ -35,24 +35,20 @@ def create_order():
     customer_id = get_jwt_identity()
 
     try:
-        # Validate input data
         validated_data = validate_order_creation.load(data=request.get_json())
     except ValidationError as ve:
-        return bad_request(message=f"Validation error: {ve.messages}")
+        return bad_request(error=ve.messages)
 
     try:
         cart = Cart.query.filter_by(customer_id=customer_id).first()
 
-        # Check if cart exists and is not empty
         if not cart or not cart.cart_entries:
-            return bad_request(message="I cannot create an order: the cart is empty")
+            return bad_request(error="The cart is empty")
 
-        # Calculate total order price
         total_order_price = sum(
             entry.price * entry.quantity for entry in cart.cart_entries
         )
 
-        # Create new order
         new_order = Order.create(
             customer_id=customer_id,
             price=total_order_price,
@@ -65,11 +61,9 @@ def create_order():
             address_postal_code=validated_data["address_postal_code"],
         )
 
-        # Process each cart entry
         for cart_entry in cart.cart_entries:
             listing = cart_entry.listing
 
-            # Create order entry
             OrderEntry.create(
                 order_id=new_order.id,
                 listing_id=cart_entry.listing_id,
@@ -77,13 +71,11 @@ def create_order():
                 price=listing.price,
             )
 
-            # Update listing quantity and purchase count
             listing.update(
                 quantity=listing.quantity - cart_entry.amount,
                 purchase_count=listing.purchase_count + cart_entry.amount,
             )
 
-        # Clear the cart
         for entry in cart.cart_entries:
             entry.delete()
 
@@ -91,15 +83,14 @@ def create_order():
             send_order_confirmation_email(customer_id, new_order.id)
 
         return success_response(data={"id": new_order.id}, status_code=201)
-    except SQLAlchemyError as e:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="A database error occurred while creating the order. Please try again later.",
-            error=str(e),
+            error=str(sql_err),
         )
     except Exception as e:
         db.session.rollback()
-        return bad_request(message=f"Error creating order: {str(e)}")
+        return handle_exception(message=str(e))
 
 
 @customer_orders_bp.route("/orders/<order_ulid>", methods=["GET"])
@@ -111,7 +102,7 @@ def get_order_details(order_ulid):
         order = Order.query.filter_by(id=order_ulid, customer_id=customer_id).first()
 
         if not order:
-            return bad_request(message="Order not found")
+            return bad_request(error="Order not found")
 
         order_data = {
             "id": order.id,
@@ -136,18 +127,16 @@ def get_order_details(order_ulid):
             ],
         }
         return success_response(
-            message="Order details retrieved successfully",
             data=order_data,
             status_code=200,
         )
-    except SQLAlchemyError as e:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="A database error occurred while fetching the order details. Please try again later.",
-            error=str(e),
+            error=str(sql_err),
         )
     except Exception as e:
-        return bad_request(message=f"Error retrieving order details: {str(e)}")
+        return handle_exception(error=str(e))
 
 
 @customer_orders_bp.route("/orders/summary", methods=["GET"])
@@ -156,37 +145,31 @@ def get_orders_summary():
     customer_id = get_jwt_identity()
 
     try:
-        # Validate and load filter parameters from request
         filters = validate_order_summary_filters.load(request.args)
     except ValidationError as err:
-        return bad_request(message="Invalid filter parameters", errors=err.messages)
+        return bad_request(error=err.messages)
 
     try:
-        # Construct query with eager loading of related models
         query = Order.query.filter_by(customer_id=customer_id).options(
             joinedload(Order.order_entries)
             .joinedload(OrderEntry.listing)
             .joinedload(Listing.product)
         )
 
-        # Apply status filter if provided
         if filters.get("status"):
             query = query.filter(
-                Order.order_status == OrderStatus[filters["status"].upper()]
+                Order.order_status == OrderStatus(filters["status"].lower())
             )
 
-        # Apply sorting based on filter parameters
         order_column = getattr(Order, filters["order_by"])
         if filters["order_direction"] == "desc":
             query = query.order_by(order_column.desc())
         else:
             query = query.order_by(order_column.asc())
 
-        # Apply pagination
         total_items = query.count()
         orders = query.offset(filters["offset"]).limit(filters["limit"]).all()
 
-        # Construct response data
         orders_data = [
             {
                 "id": order.id,
@@ -205,9 +188,7 @@ def get_orders_summary():
             for order in orders
         ]
 
-        # Return successful response with orders data and pagination info
         return success_response(
-            message="Orders history retrieved successfully",
             data={
                 "orders": orders_data,
                 "pagination": {
@@ -218,14 +199,13 @@ def get_orders_summary():
             },
             status_code=200,
         )
-    except SQLAlchemyError as e:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="A database error occurred while fetching the order details. Please try again later.",
-            error=str(e),
+            error=str(sql_err),
         )
     except Exception as e:
-        return bad_request(message=f"Error retrieving orders history: {str(e)}")
+        return handle_exception(error=str(e))
 
 
 @customer_orders_bp.route("/orders/<order_id>/", methods=["DELETE"])
@@ -237,15 +217,13 @@ def delete_order(order_ulid):
         order = Order.query.filter_by(id=order_ulid, customer_id=customer_id).first()
 
         if not order:
-            return bad_request(message="Order not found")
+            return bad_request(error="Order not found")
 
         if order.order_status != OrderStatus.PENDING:
-            return bad_request(message="Only pending orders can be cancelled")
+            return bad_request(error="Only pending orders can be cancelled")
 
-        # Update order status to cancelled
         order.update(order_status=OrderStatus.CANCELLED)
 
-        # Revert listing quantities and purchase counts
         for entry in order.order_entries:
             listing = entry.listing
             listing.update(
@@ -257,12 +235,11 @@ def delete_order(order_ulid):
             send_order_cancellation_email(customer_id, order.id)
 
         return success_response(status_code=200)
-    except SQLAlchemyError as e:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(
-            message="A database error occurred while cancelling the order. Please try again later.",
-            error=str(e),
+            error=str(sql_err),
         )
     except Exception as e:
         db.session.rollback()
-        return bad_request(message=f"Error cancelling order: {str(e)}")
+        return handle_exception(error=str(e))

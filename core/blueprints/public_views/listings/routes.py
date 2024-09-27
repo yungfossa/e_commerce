@@ -11,13 +11,7 @@ from core.blueprints.errors.handlers import (
     not_found,
 )
 from core.blueprints.utils import success_response
-from core.models import (
-    Listing,
-    ListingReview,
-    MVProductCategory,
-    Product,
-    ProductCategory,
-)
+from core.models import Listing, ListingReview, Product, ProductCategory, ProductState
 from core.validators.customer.customer_review import ReviewFilterSchema
 from core.validators.public_views.public_products import (
     ListingsFilterSchema,
@@ -111,7 +105,10 @@ def get_products():
         limit = query_params.get("limit")
         offset = query_params.get("offset")
         category = query_params.get("category")
+    except ValidationError as verr:
+        return bad_request(verr.messages)
 
+    try:
         query = Product.query
 
         if category:
@@ -123,36 +120,35 @@ def get_products():
 
         return success_response(message="products", data=[to_dict(p) for p in products])
 
-    except ValidationError as verr:
-        return bad_request(verr.messages)
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
         db.session.rollback()
-        return handle_exception(
-            message="An error occurred while getting products homepage"
-        )
+        return handle_exception(error=str(e))
+    except Exception as e:
+        db.session.rollback()
+        return internal_server_error(error=str(e))
 
 
 @listings_bp.route("/products/<string:product_ulid>", methods=["GET"])
 def get_product_listings_and_reviews(product_ulid):
     try:
-        # Load and validate query parameters
-        query_params = validate_listings_filters.load(request.args)
+        data = validate_listings_filters.load(request.get_json())
+    except ValidationError as verr:
+        return bad_request(message=verr.messages)
 
-        limit = query_params.get("limit")
-        offset = query_params.get("offset")
-        price_order_by = query_params.get("price_order_by")
-        review_order_by = query_params.get("review_order_by")
-        product_state = query_params.get("product_state")
-        view_count_order_by = query_params.get("view_count_order_by")
-        purchase_count_order_by = query_params.get("purchase_count_order_by")
+    try:
+        limit = data.get("limit")
+        offset = data.get("offset")
+        price_order_by = data.get("price_order_by")
+        review_order_by = data.get("review_order_by")
+        product_state = data.get("product_state")
+        view_count_order_by = data.get("view_count_order_by")
+        purchase_count_order_by = data.get("purchase_count_order_by")
 
-        # Fetch the product by ULID
         product = Product.query.filter_by(id=product_ulid).first()
 
         if not product:
-            return not_found("Product not found")
+            return not_found(error="Product not found")
 
-        # Build the query for listings
         query = (
             Listing.query.join(Product)
             .options(
@@ -162,7 +158,6 @@ def get_product_listings_and_reviews(product_ulid):
             .filter(Product.id == product_ulid)
         )
 
-        # Apply ordering based on query parameters
         order_by_mapping = {
             "price": price_order_by,
             "view_count": view_count_order_by,
@@ -177,20 +172,18 @@ def get_product_listings_and_reviews(product_ulid):
                     else getattr(Listing, key).asc()
                 )
 
-        # Apply filters
         if product_state:
-            query = query.filter(Listing.product_state == product_state)
+            query = query.filter(Listing.product_state == ProductState(product_state))
         if review_order_by:
             if review_order_by == "asc":
                 query = query.join(Listing.review).order_by(ListingReview.rating.asc())
             elif review_order_by == "desc":
                 query = query.join(Listing.review).order_by(ListingReview.rating.desc())
 
-        # Fetch listings with pagination
         listings = query.limit(limit).offset(offset).all()
 
-        # Prepare the response data
         product_data = {
+            "id": product.id,
             "name": product.name,
             "description": product.description,
             "image_src": product.image_src,
@@ -199,6 +192,7 @@ def get_product_listings_and_reviews(product_ulid):
             },
             "listings": [
                 {
+                    "id": listing.id,
                     "price": float(listing.price),
                     "quantity": listing.quantity,
                     "is_available": listing.is_available,
@@ -224,62 +218,71 @@ def get_product_listings_and_reviews(product_ulid):
             else [],
         }
 
-        return success_response(message="product listings", data=product_data)
+        return success_response(data=product_data, status_code=200)
 
-    except ValidationError as verr:
-        return bad_request(verr.messages)
-    except SQLAlchemyError:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(
-            message="An error occurred while getting product listings and reviews"
-        )
+        return handle_exception(error=str(sql_err))
+    except Exception as err:
+        db.session.rollback()
+        return handle_exception(error=str(err))
 
 
 @listings_bp.route(
     "/products/<string:product_ulid>/<string:listing_ulid>", methods=["GET"]
 )
 def get_listing(product_ulid, listing_ulid):
-    listing = (
-        Listing.query.options(
-            joinedload(Listing.seller),
-            joinedload(Listing.review).joinedload(ListingReview.customer),
+    try:
+        listing = (
+            Listing.query.options(
+                joinedload(Listing.seller),
+                joinedload(Listing.review).joinedload(ListingReview.customer),
+            )
+            .filter_by(id=listing_ulid, product_id=product_ulid)
+            .first()
         )
-        .filter_by(id=listing_ulid, product_id=product_ulid)
-        .first()
-    )
 
-    if not listing:
-        return not_found("Listing not found")
+        if not listing:
+            return not_found(message="Listing not found")
 
-    mv_product = MVProductCategory.query.filter_by(product_id=product_ulid).first()
+        product = (
+            Product.query.options(joinedload(Product.category))
+            .filter_by(id=product_ulid)
+            .first()
+        )
 
-    if not mv_product:
-        return not_found("Product not found")
+        if not product:
+            return not_found(message="Product not found")
 
-    listing_data = {
-        "price": float(listing.price),
-        "quantity": listing.quantity,
-        "is_available": listing.is_available,
-        "product_state": listing.product_state.value,
-        "purchase_count": listing.purchase_count,
-        "view_count": listing.view_count,
-        "seller": {"name": listing.seller.name},
-        "product": {
-            "name": mv_product.product_name,
-            "description": mv_product.product_description,
-            "image_src": mv_product.product_img,
-            "category": mv_product.product_category,
-        },
-        "reviews": [
-            {
-                "title": review.title,
-                "description": review.description,
-                "rating": review.rating.value,
-                "created_at": review.created_at.isoformat(),
-                "customer": {"name": review.customer.name},
-            }
-            for review in listing.review
-        ],
-    }
+        listing_data = {
+            "price": float(listing.price),
+            "quantity": listing.quantity,
+            "is_available": listing.is_available,
+            "product_state": listing.product_state.value,
+            "purchase_count": listing.purchase_count,
+            "view_count": listing.view_count,
+            "seller": {"name": listing.seller.name},
+            "product": {
+                "name": product.name,
+                "description": product.description,
+                "image_src": product.image_src,
+                "category": product.category.title,
+            },
+            "reviews": [
+                {
+                    "title": review.title,
+                    "description": review.description,
+                    "rating": review.rating.value,
+                    "created_at": review.created_at.isoformat(),
+                    "customer": {"name": review.customer.name},
+                }
+                for review in listing.review
+            ],
+        }
 
-    return success_response(message="listing", data=listing_data)
+        return success_response(data=listing_data, status_code=200)
+
+    except SQLAlchemyError as sql_err:
+        return handle_exception(str(sql_err))
+    except Exception as e:
+        return handle_exception(str(e))

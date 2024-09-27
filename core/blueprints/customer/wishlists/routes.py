@@ -4,7 +4,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from core import db
-from core.blueprints.errors.handlers import bad_request, not_found
+from core.blueprints.errors.handlers import bad_request, handle_exception, not_found
 from core.blueprints.utils import required_user_type, success_response
 from core.models import (
     Listing,
@@ -20,8 +20,6 @@ from core.validators.customer.customer_wishlist import (
     UpsertWishlistSchema,
     WishlistsDetailsSchema,
 )
-
-WISHLIST_NOT_FOUND = "Wishlist not found"
 
 customer_wishlists_bp = Blueprint("customer_wishlists", __name__)
 
@@ -61,7 +59,7 @@ def get_wishlist_content(ulid):
         wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
 
         if not wishlist:
-            return not_found(message=WISHLIST_NOT_FOUND)
+            return not_found(error="Wishlist not found")
 
         entries = (
             db.session.query(Product, ProductCategory, WishListEntry, Listing, Seller)
@@ -81,13 +79,21 @@ def get_wishlist_content(ulid):
             .all()
         )
 
-        return success_response("Wishlist", data=wishlist_summary(entries))
-    except SQLAlchemyError as e:
+        return success_response(
+            data=wishlist_summary(entries),
+            status_code=200,
+        )
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(f"Database error occurred: {str(e)}")
+        return handle_exception(
+            error=str(sql_err),
+        )
     except Exception as e:
         db.session.rollback()
-        return bad_request(f"An unexpected error occurred: {str(e)}")
+        return handle_exception(
+            error=str(e),
+        )
 
 
 @customer_wishlists_bp.route("/wishlists/<string:ulid>", methods=["POST"])
@@ -98,7 +104,7 @@ def add_wishlist_entry(ulid):
     try:
         validated_data = validate_insert_to_wl.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         listing_id = validated_data.get("listing_id")
@@ -106,24 +112,35 @@ def add_wishlist_entry(ulid):
         wishlist = WishList.query.filter_by(id=ulid, customer_id=customer_id).first()
 
         if not wishlist:
-            return bad_request(message=WISHLIST_NOT_FOUND)
+            return not_found(message="Wishlist not found")
 
         wishlist_entry = WishListEntry.query.filter_by(
             wishlist_id=wishlist.id, listing_id=listing_id
         ).first()
 
         if wishlist_entry:
-            return bad_request(message="The listing product is already in the wishlist")
+            return success_response(
+                message="The listing product is already in the wishlist",
+                status_code=200,
+            )
 
         _we = WishListEntry.create(wishlist_id=wishlist.id, listing_id=listing_id)
 
-        return success_response(data={"id": _we.id}, status_code=201)
-    except SQLAlchemyError as e:
+        return success_response(
+            data={"id": _we.id},
+            status_code=201,
+        )
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(f"Database error occurred: {str(e)}")
+        return handle_exception(
+            error=str(sql_err),
+        )
     except Exception as e:
         db.session.rollback()
-        return bad_request(f"An unexpected error occurred: {str(e)}")
+        return handle_exception(
+            error=str(e),
+        )
 
 
 @customer_wishlists_bp.route("/wishlists/<string:ulid>", methods=["DELETE"])
@@ -132,7 +149,7 @@ def remove_wishlist_entry(ulid):
     try:
         validated_data = validate_remove_from_wl.load(request.get_json())
     except ValidationError as err:
-        return bad_request(message=err.messages)
+        return bad_request(error=err.messages)
 
     try:
         wishlist_entry_id = validated_data.get("wishlist_entry_id")
@@ -143,14 +160,15 @@ def remove_wishlist_entry(ulid):
         ).delete()
 
         return success_response(
-            message="Wishlist entry removed successfully", status_code=200
+            status_code=200,
         )
-    except SQLAlchemyError as e:
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(f"Database error occurred: {str(e)}")
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return bad_request(f"An unexpected error occurred: {str(e)}")
+        return handle_exception(error=str(e))
 
 
 @customer_wishlists_bp.route("/wishlists", methods=["GET"])
@@ -162,17 +180,21 @@ def get_wishlists():
         wishlists = WishList.query.filter_by(customer_id=customer_id).all()
 
         if not wishlists:
-            return success_response(message="Wishlist not found")
+            return success_response(status_code=200)
 
         wishlists_list = [{"id": wl.id, "name": wl.name} for wl in wishlists]
-    except SQLAlchemyError as e:
+
+        return success_response(
+            data=wishlists_list,
+            status_code=200,
+        )
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(f"Database error occurred: {str(e)}")
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return bad_request(f"An unexpected error occurred: {str(e)}")
-
-    return success_response("Wishlists", data=wishlists_list)
+        return handle_exception(error=str(e))
 
 
 @customer_wishlists_bp.route("/wishlists", methods=["POST"])
@@ -183,7 +205,7 @@ def upsert_wishlist():
     try:
         validated_data = validate_upsert_wl.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         wishlist_id = validated_data.get("wishlist_id")
@@ -196,29 +218,32 @@ def upsert_wishlist():
         if existing_wishlist and (
             not wishlist_id or existing_wishlist.id != wishlist_id
         ):
-            return bad_request(message="A wishlist with this name already exists")
+            return bad_request(error="A wishlist with this name already exists")
 
         if wishlist_id:
             wishlist = WishList.query.filter_by(
                 id=wishlist_id, customer_id=customer_id
             ).first()
+
             if not wishlist:
-                return bad_request(message=WISHLIST_NOT_FOUND)
+                return not_found(error="Wishlist not found")
+
             wishlist.update(name=wishlist_name)
+
             return success_response(
-                message="Wishlist updated successfully", status_code=200
+                status_code=200,
             )
         else:
             wishlist = WishList.create(name=wishlist_name, customer_id=customer_id)
-            return success_response(
-                message="Wishlist created successfully", data={"id": wishlist.id}
-            )
-    except SQLAlchemyError as e:
+
+            return success_response(data={"id": wishlist.id}, status_code=201)
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(f"Database error occurred: {str(e)}")
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return bad_request(f"An unexpected error occurred: {str(e)}")
+        return handle_exception(error=str(e))
 
 
 @customer_wishlists_bp.route("/wishlists", methods=["DELETE"])
@@ -229,31 +254,38 @@ def remove_wishlist():
     try:
         validated_data = validate_wl.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         wishlists_ids = validated_data.get("wishlists_ids")
 
         if not wishlists_ids:
-            return success_response(message="No wishlists specified for removal")
+            return success_response(
+                message="No wishlists specified for removal", status_code=200
+            )
 
         deleted_count = WishList.query.filter(
             WishList.id.in_(wishlists_ids), WishList.customer_id == customer_id
         ).delete()
 
         if deleted_count == 0:
-            return success_response(message="No wishlists were found for removal")
+            return success_response(
+                message="No wishlists were found for removal",
+                status_code=200,
+            )
         elif deleted_count < len(wishlists_ids):
             return success_response(
-                message=f"{deleted_count} out of {len(wishlists_ids)} wishlists were removed successfully"
+                message=f"{deleted_count} out of {len(wishlists_ids)} wishlists were remo   ved successfully",
+                status_code=200,
             )
         else:
             return success_response(
-                message="All specified wishlists have been removed successfully"
+                message="All specified wishlists have been removed successfully",
+                status_code=200,
             )
-    except SQLAlchemyError as e:
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(f"Database error occurred: {str(e)}")
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return bad_request(f"An unexpected error occurred: {str(e)}")
+        return handle_exception(error=str(e))

@@ -41,14 +41,14 @@ products = [
 
 for name, description, image, category, listings in products:
     (product, _) = admin.add_product(name, description, image, category)
-    product_id = product["product_id"]
+    product_id = product["id"]
 
     for listing in listings:
         ((email, password), (count, price, quality)) = listing
 
         seller = Seller.login(email, password)
         (lr, _) = seller.create_listing(product_id, count, price, quality)
-        listing_id = lr["listing_id"]
+        listing_id = lr["id"]
 
 customer = User.force_login("foo@gmail.com", "Password1?").create_review(
     product_id, listing_id, "Not great", "Not terrible", "5"

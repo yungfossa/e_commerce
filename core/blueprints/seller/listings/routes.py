@@ -5,9 +5,16 @@ from sqlalchemy import case, func
 from sqlalchemy.exc import SQLAlchemyError
 
 from core import db
-from core.blueprints.errors.handlers import bad_request, not_found
+from core.blueprints.errors.handlers import bad_request, handle_exception, not_found
 from core.blueprints.utils import required_user_type, success_response
-from core.models import Listing, ListingReview, Product, ProductCategory, ReviewRate
+from core.models import (
+    Listing,
+    ListingReview,
+    Product,
+    ProductCategory,
+    ProductState,
+    ReviewRate,
+)
 from core.validators.seller.seller_listing import AddListingSchema, EditListingSchema
 
 seller_listings_bp = Blueprint("seller_listings", __name__)
@@ -91,16 +98,20 @@ def listings():
             .all()
         )
 
-        return success_response(data=listings_summary(listing_entries), status_code=200)
-    except SQLAlchemyError as e:
+        return success_response(
+            data=listings_summary(listing_entries),
+            status_code=200,
+        )
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(
-            f"A database error occurred while fetching listings: {str(e)}"
+        return handle_exception(
+            error=str(sql_err),
         )
     except Exception as e:
         db.session.rollback()
-        return bad_request(
-            f"An unexpected error occurred while fetching listings: {str(e)}"
+        return handle_exception(
+            error=str(e),
         )
 
 
@@ -110,22 +121,27 @@ def create_listing():
     seller_id = get_jwt_identity()
 
     try:
-        validated_data = validate_add_listing.load(request.get_json())
+        data = validate_add_listing.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
-        quantity = validated_data.get("quantity")
-        price = validated_data.get("price")
-        product_state = validated_data.get("product_state")
-        product_id = validated_data.get("id")
+        product_id = data.get("product_id")
+        quantity = data.get("quantity")
+        price = data.get("price")
+        product_state = data.get("product_state").lower()
         is_available = quantity != 0
+
+        product = Product.query.filter_by(id=product_id).first()
+
+        if not product:
+            return not_found(error="Product not found")
 
         listing = Listing.create(
             quantity=quantity,
-            price=price,
             is_available=is_available,
-            product_state=product_state,
+            price=price,
+            product_state=ProductState(product_state),
             seller_id=seller_id,
             product_id=product_id,
         )
@@ -134,15 +150,16 @@ def create_listing():
             data={"id": listing.id},
             status_code=201,
         )
-    except SQLAlchemyError as e:
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(
-            f"A database error occurred while creating the listing: {str(e)}"
+        return handle_exception(
+            error=str(sql_err),
         )
     except Exception as e:
         db.session.rollback()
         return bad_request(
-            f"An unexpected error occurred while creating the listing: {str(e)}"
+            error=str(e),
         )
 
 
@@ -155,20 +172,22 @@ def get_listing(ulid):
         listing = Listing.query.filter_by(id=ulid, seller_id=seller_id).first()
 
         if not listing:
-            return not_found("Listing not found")
+            return not_found(error="Listing not found")
 
         return success_response(
-            message=f"Listing #{ulid}", data=listing.to_dict(), status_code=200
+            data=listing.to_dict(),
+            status_code=200,
         )
-    except SQLAlchemyError as e:
+
+    except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return bad_request(
-            f"A database error occurred while fetching the listing: {str(e)}"
+        return handle_exception(
+            error=str(sql_err),
         )
     except Exception as e:
         db.session.rollback()
-        return bad_request(
-            f"An unexpected error occurred while fetching the listing: {str(e)}"
+        return handle_exception(
+            error=str(e),
         )
 
 
@@ -181,21 +200,20 @@ def delete_listing(ulid):
         listing = Listing.query.filter_by(id=ulid, seller_id=seller_id).first()
 
         if not listing:
-            return not_found("Listing not found: it has been already deleted")
+            return not_found(error="Listing not found")
 
         listing.delete()
 
-        return success_response(f"Listing #{ulid} has been deleted successfully")
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return bad_request(
-            f"A database error occurred while deleting the listing: {str(e)}"
+        return success_response(
+            status_code=200,
         )
+
+    except SQLAlchemyError as sql_err:
+        db.session.rollback()
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return bad_request(
-            f"An unexpected error occurred while deleting the listing: {str(e)}"
-        )
+        return handle_exception(error=str(e))
 
 
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["PUT"])
@@ -206,7 +224,7 @@ def edit_listing(ulid):
     try:
         validated_data = validate_edited_listing.load(request.get_json())
     except ValidationError as err:
-        return bad_request(err.messages)
+        return bad_request(error=err.messages)
 
     try:
         quantity = validated_data.get("quantity")
@@ -216,7 +234,7 @@ def edit_listing(ulid):
         listing = Listing.query.filter_by(id=ulid, seller_id=seller_id).first()
 
         if not listing:
-            return not_found("Listing not found.")
+            return not_found(error="Listing not found.")
 
         _listing = listing.update(
             quantity=quantity,
@@ -224,14 +242,14 @@ def edit_listing(ulid):
             price=price,
         )
 
-        return success_response(data={"id": _listing.id}, status_code=200)
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return bad_request(
-            f"A database error occurred while editing the listing: {str(e)}"
+        return success_response(
+            data={"id": _listing.id},
+            status_code=200,
         )
+
+    except SQLAlchemyError as sql_err:
+        db.session.rollback()
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return bad_request(
-            f"An unexpected error occurred while editing the listing: {str(e)}"
-        )
+        return handle_exception(error=str(e))
