@@ -57,7 +57,7 @@ export default function ProductsPage() {
 	const navigate = useNavigate();
 	const { showAlert } = useContext(AlertContext);
 
-	let { id } = useParams();
+	let { pid, lid } = useParams();
 
 	const access_token = useAppSelector((s) => s.user.access_token);
 	const client = new Client(access_token);
@@ -70,19 +70,25 @@ export default function ProductsPage() {
 			return;
 		}
 
-		client.post(`http://localhost:5000/products/${id}`, {
+		client.post(`http://localhost:5000/products/${pid}`, {
 			offset: 0,
 			limit: 100,
 		})
 			.then((r) => {
+				console.log(lid);
 				setProduct(r.data);
-				setListing(r.data.listings[0] || null);
+				if (lid) {
+					console.log("filtering");
+					setListing(r.data.listings.filter(r => r.id == lid)[0]);
+				} else {
+					setListing(r.data.listings[0]);
+				}
 			})
 			.catch((e) => {
 				showAlert("An error occured", "error");
 				navigate("/");
 			});
-	}, [access_token]);
+	}, [access_token, lid]);
 
 	if (product === null) {
 		return "Loading...";
@@ -100,7 +106,8 @@ export default function ProductsPage() {
 						{listing.seller.name && <Link to={`/seller/${listing.seller.id}`}>View {listing.seller.name} store</Link>}
 					</Store>
 					<img height="250px" width="250px" src={product.image_src} />
-					{listing?.price || "Item not available, sorry bud."}
+					<br />
+					For small price of {listing?.price || "Item not available, sorry bud."} dolla.
 				</ProductWrapper>
 
 				<ListingWrapper>
@@ -109,14 +116,14 @@ export default function ProductsPage() {
 							product.listings.map((l) => {
 								return (
 									<ListingsWrapper>
-										<Link to={`/products/${id}/${l.id}`}>
+										<Link to={`/products/${pid}/${l.id}`}>
 											<p>{l.seller.name}</p>
 											<p>only {l.quantity} left</p>
 											<p>{l.price} dolla</p>
 										</Link>
 										<Button
 											text="buy"
-											onClick={createAddToCartFn(client, showAlert, id, l.id)}>
+											onClick={createAddToCartFn(client, showAlert, pid, l.id)}>
 										</Button>
 									</ListingsWrapper>
 								);

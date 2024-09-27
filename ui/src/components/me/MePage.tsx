@@ -12,7 +12,7 @@ const ProfileImage = styled.img`
 	height: 100px;
 `;
 
-const default_avatar_url = "https://upload.wikimedia.org/wikipedia/commons/1/1e/Default-avatar.jpg";
+const default_avatar_url = "https://st3.depositphotos.com/9998432/13335/v/450/depositphotos_133352156-stock-illustration-default-placeholder-profile-icon.jpg";
 
 export default function() {
 	const navigate = useNavigate();

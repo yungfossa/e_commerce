@@ -24,7 +24,7 @@ products = [
         "https://media.istockphoto.com/id/526039805/it/foto/lucky-bamb%C3%B9.jpg?s=2048x2048&w=is&k=20&c=z2MXWWcWpyyw1G8uoqJ5YFV30cHdZJ_Hvxz9t4OjPcA=",
         "Garden",
         [
-            (("sales@amazon.com", "changeme"), (5, 39.99, "used")),
+            (("sales@amazon.com", "changeme"), (5, 39.99, "new")),
         ],
     ),
     (
@@ -33,7 +33,16 @@ products = [
         "https://media.istockphoto.com/id/1162717440/it/foto/pila-di-cubetti-di-manzo-isolati-su-bianco.jpg?s=2048x2048&w=is&k=20&c=izUSXR_n7absKOtGBRdPT7gg1E_9lAlshtdoiG9JU1w=",
         "Food",
         [
-            (("sales@amazon.com", "changeme"), (100, 9.85, "used")),
+            (("sales@amazon.com", "changeme"), (100, 9.85, "new")),
+            (("sales@google.com", "changeme"), (1, 99.99, "new")),
+        ],
+    ),
+    (
+        "Watr",
+        "Mlmlml?",
+        "https://media.istockphoto.com/id/614012030/cs/fotografie/mlad%C3%A1-%C5%BEena-pije-sklenici-vody.jpg?s=2048x2048&w=is&k=20&c=WdAEQoAMlC5e0PMr4o8hQ_uE0ufiEd0q5y83q1rBiwk=",
+        "Food",
+        [
             (("sales@google.com", "changeme"), (1, 99.99, "new")),
         ],
     ),

@@ -315,6 +315,7 @@ def get_seller_listings(seller_ulid):
 
         response = [
             {
+                "id": listing.id,
                 "price": float(listing.price),
                 "quantity": listing.quantity,
                 "is_available": listing.is_available,
@@ -323,6 +324,7 @@ def get_seller_listings(seller_ulid):
                 "view_count": listing.view_count,
                 "seller": {"name": listing.seller.name},
                 "product": {
+                    "id": listing.product.id,
                     "name": listing.product.name,
                     "description": listing.product.description,
                     "image_src": listing.product.image_src,
