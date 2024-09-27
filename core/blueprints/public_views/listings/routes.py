@@ -11,7 +11,15 @@ from core.blueprints.errors.handlers import (
     not_found,
 )
 from core.blueprints.utils import success_response
-from core.models import Listing, ListingReview, Product, ProductCategory, ProductState
+from core.models import (
+    Customer,
+    Listing,
+    ListingReview,
+    Product,
+    ProductCategory,
+    ProductState,
+    Seller,
+)
 from core.validators.customer.customer_review import ReviewFilterSchema
 from core.validators.public_views.public_products import (
     ListingsFilterSchema,
@@ -255,6 +263,7 @@ def get_listing(product_ulid, listing_ulid):
             return not_found(message="Product not found")
 
         listing_data = {
+            "id": listing.id,
             "price": float(listing.price),
             "quantity": listing.quantity,
             "is_available": listing.is_available,
@@ -263,6 +272,7 @@ def get_listing(product_ulid, listing_ulid):
             "view_count": listing.view_count,
             "seller": {"name": listing.seller.name},
             "product": {
+                "id": product.id,
                 "name": product.name,
                 "description": product.description,
                 "image_src": product.image_src,
@@ -270,6 +280,7 @@ def get_listing(product_ulid, listing_ulid):
             },
             "reviews": [
                 {
+                    "id": review.id,
                     "title": review.title,
                     "description": review.description,
                     "rating": review.rating.value,
@@ -281,6 +292,92 @@ def get_listing(product_ulid, listing_ulid):
         }
 
         return success_response(data=listing_data, status_code=200)
+
+    except SQLAlchemyError as sql_err:
+        return handle_exception(str(sql_err))
+    except Exception as e:
+        return handle_exception(str(e))
+
+
+@listings_bp.route("/products/<string:seller_ulid>", methods=["GET"])
+def get_seller_listings(seller_ulid):
+    try:
+        seller = Seller.query.filter_by(id=seller_ulid).first()
+
+        if not seller:
+            return not_found(message="Seller not found")
+
+        listings = (
+            Listing.query.filter_by(seller_id=seller_ulid)
+            .options(joinedload(Listing.product))
+            .all()
+        )
+
+        response = [
+            {
+                "price": float(listing.price),
+                "quantity": listing.quantity,
+                "is_available": listing.is_available,
+                "product_state": listing.product_state.value,
+                "purchase_count": listing.purchase_count,
+                "view_count": listing.view_count,
+                "seller": {"name": listing.seller.name},
+                "product": {
+                    "name": listing.product.name,
+                    "description": listing.product.description,
+                    "image_src": listing.product.image_src,
+                    "category": listing.product.category.title,
+                },
+            }
+            for listing in listings
+        ]
+
+        return success_response(
+            data=response,
+            status_code=200,
+        )
+    except SQLAlchemyError as sql_err:
+        return handle_exception(str(sql_err))
+    except Exception as e:
+        return handle_exception(str(e))
+
+
+@listings_bp.route("/products/<string:seller_ulid>/reviews", methods=["GET"])
+def get_seller_reviews(seller_ulid):
+    try:
+        seller = Seller.query.filter_by(id=seller_ulid).first()
+
+        if not seller:
+            return not_found(message="Seller not found")
+
+        reviews = (
+            ListingReview.query.join(Listing)
+            .join(Customer)
+            .filter(Listing.seller_id == seller_ulid)
+            .options(
+                joinedload(ListingReview.customer), joinedload(ListingReview.listing)
+            )
+            .all()
+        )
+
+        response = [
+            {
+                "id": review.id,
+                "title": review.title,
+                "description": review.description,
+                "rating": review.rating.value,
+                "created_at": review.created_at.isoformat(),
+                "modified_at": review.modified_at.isoformat(),
+                "customer": {"name": review.customer.name},
+                "listing": {"id": review.listing.id},
+            }
+            for review in reviews
+        ]
+
+        return success_response(
+            data=response,
+            status_code=200,
+        )
 
     except SQLAlchemyError as sql_err:
         return handle_exception(str(sql_err))
