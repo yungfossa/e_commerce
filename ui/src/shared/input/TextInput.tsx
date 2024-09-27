@@ -29,6 +29,10 @@ const InputWrapper = styled.input`
     box-sizing: border-box;
 `;
 
+const IconWrapper = styled.div`
+	padding-left: 1rem;
+`;
+
 interface Props {
 	placeholder: string;
 	password?: boolean;
@@ -47,11 +51,13 @@ export default function TextInput({
 	return (
 		<Wrapper width={width}>
 			{icon !== undefined && (
-				<FontAwesomeIcon
-					style={{ "margin-right": "0.75rem" }}
-					size="m"
-					icon={icon}
-				/>
+				<IconWrapper>
+					<FontAwesomeIcon
+						style={{ "margin-right": "0.75rem" }}
+						size="m"
+						icon={icon}
+					/>
+				</IconWrapper>
 			)}
 			<InputWrapper
 				width={width}

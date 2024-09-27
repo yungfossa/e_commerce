@@ -70,7 +70,10 @@ export default function ProductsPage() {
 			return;
 		}
 
-		client.get(`http://localhost:5000/products/${id}`)
+		client.post(`http://localhost:5000/products/${id}`, {
+			offset: 0,
+			limit: 100,
+		})
 			.then((r) => {
 				setProduct(r.data);
 				setListing(r.data.listings[0] || null);

@@ -136,7 +136,7 @@ def get_products():
         return internal_server_error(error=str(e))
 
 
-@listings_bp.route("/products/<string:product_ulid>", methods=["GET"])
+@listings_bp.route("/products/<string:product_ulid>", methods=["POST"])
 def get_product_listings_and_reviews(product_ulid):
     try:
         data = validate_listings_filters.load(request.get_json())

@@ -66,7 +66,7 @@ export default function Header() {
 				profile ? (
 					<Section>
 						<Link to="/me" style={{ "color": "white", textDecoration: "none" }}>
-							Welcome back <br /> <u><b>{profile.name}</b></u>
+							Welcome back <br /> <u><b>{profile.first_name}</b></u>
 						</Link>
 						<div style={{ paddingLeft: "3rem" }} />
 						<Link to="/cart">

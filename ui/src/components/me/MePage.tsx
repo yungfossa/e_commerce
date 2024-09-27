@@ -46,7 +46,7 @@ export default function() {
 
 			<br />
 
-			<h1>Hi {profile.name}!</h1>
+			<h1>Hi {profile.first_name}!</h1>
 
 			<br />
 
@@ -54,11 +54,11 @@ export default function() {
 
 			<br />
 
-			Name: {profile.name}
+			Name: {profile.first_name}
 
 			<br />
 
-			Surname: {profile.surname}
+			Surname: {profile.last_name}
 		</>
 	);
 
