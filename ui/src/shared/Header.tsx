@@ -81,7 +81,10 @@ export default function Header() {
 			</Section>
 			{profile ? (
 				<Section>
-					<Link to="/me" style={{ color: "white", textDecoration: "none" }}>
+					<Link
+						to="/profile"
+						style={{ color: "white", textDecoration: "none" }}
+					>
 						Welcome back <br />{" "}
 						<u>
 							<b>{profile.first_name}</b>

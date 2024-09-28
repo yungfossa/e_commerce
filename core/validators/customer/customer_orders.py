@@ -1,5 +1,4 @@
-import requests
-from marshmallow import Schema, ValidationError, fields, post_load, validates_schema
+from marshmallow import Schema, fields, post_load, validates_schema
 from marshmallow.validate import Length, OneOf, Range
 
 INVALID_ARG_KEY = "invalid arg"
@@ -36,21 +35,22 @@ class OrderCreationSchema(Schema):
 
     @validates_schema
     def validate_address(self, data, **kwargs):
-        response = requests.get(
-            NOMINATIM_API_URL,
-            params={
-                "street": data["address_street"],
-                "city": data["address_city"],
-                "state": data["address_state"],
-                "country": data["address_country"],
-                "postalcode": data["address_postal_code"],
-                "format": "json",
-            },
-            headers={"User-Agent": "ShopSphere/1.0"},
-        )
-        result = response.json()
-        if not result:
-            raise ValidationError("Invalid address")
+        # response = requests.get(
+        #     NOMINATIM_API_URL,
+        #     params={
+        #         "street": data["address_street"],
+        #         "city": data["address_city"],
+        #         "state": data["address_state"],
+        #         "country": data["address_country"],
+        #         "postalcode": data["address_postal_code"],
+        #         "format": "json",
+        #     },
+        #     headers={"User-Agent": "ShopSphere/1.0"},
+        # )
+        # result = response.json()
+        # if not result:
+        #     raise ValidationError("Invalid address")
+        return
 
     @post_load
     def get_validated_order_data(self, data, **kwargs):

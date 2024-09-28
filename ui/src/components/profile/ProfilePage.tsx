@@ -20,7 +20,7 @@ const Wrapper = styled.div`
 const default_avatar_url =
 	"https://st3.depositphotos.com/9998432/13335/v/450/depositphotos_133352156-stock-illustration-default-placeholder-profile-icon.jpg";
 
-export default function () {
+export default function() {
 	const navigate = useNavigate();
 	const { showAlert } = useContext(AlertContext);
 
@@ -73,7 +73,22 @@ export default function () {
 				</Card>
 			</Wrapper>
 
-			{JSON.stringify(orders)}
+			{orders?.orders.map((order) => {
+				return (
+					<Card key={order.id}>
+						At {order.created_at} you spent {order.total_amount}, that's a lot
+						of money
+						<br />
+						{order.entries.map((entry) => {
+							return (
+								<div key={entry.id}>
+									{entry.price} - {entry.quantity} - {entry.product_name}
+								</div>
+							);
+						})}
+					</Card>
+				);
+			})}
 		</>
 	);
 }

@@ -145,9 +145,12 @@ export default function ProductsPage() {
 					return p.reviews.map((l) => {
 						return (
 							<ListingsWrapper>
-								<p>{l.title}</p>
+								<p>{l.customer.name} wrote:</p>
+								<p>
+									<b>{l.title}</b>
+									<ReviewRating score={l.rating} />
+								</p>
 								<p>{l.description}</p>
-								<ReviewRating score={l.rating} />
 							</ListingsWrapper>
 						);
 					});

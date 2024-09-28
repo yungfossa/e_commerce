@@ -10,8 +10,8 @@ import LoginPage from "./components/login/LoginPage.tsx";
 import RegisterPage from "./components/register/RegisterPage.tsx";
 import ProductsPage from "./components/products/ProductsPage.tsx";
 import SellerPage from "./components/seller/SellerPage.tsx";
-import MePage from "./components/me/MePage.tsx";
-import ShoppingCartPage from "./components/cart/ShoppingCartPage.tsx";
+import ProfilePage from "./components/profile/ProfilePage.tsx";
+import CartPage from "./components/cart/CartPage.tsx";
 
 const router = createBrowserRouter([
 	{
@@ -19,12 +19,12 @@ const router = createBrowserRouter([
 		element: <App />,
 	},
 	{
-		path: "/me",
-		element: <MePage />,
+		path: "/profile",
+		element: <ProfilePage />,
 	},
 	{
 		path: "/cart",
-		element: <ShoppingCartPage />,
+		element: <CartPage />,
 	},
 	{
 		path: "/products/:pid/:lid?",

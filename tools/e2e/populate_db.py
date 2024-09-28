@@ -59,6 +59,11 @@ for name, description, image, category, listings in products:
         (lr, _) = seller.create_listing(product_id, count, price, quality)
         listing_id = lr["id"]
 
-customer = User.force_login("foo@gmail.com", "Password1?").create_review(
-    product_id, listing_id, "Not great", "Not terrible", "5"
+customer = User.create("bar@gmail.com", "Password1?", "bar", "bar")
+review = customer.create_review(
+    product_id, listing_id, "Not great", "Not terrible", "3"
 )
+
+# customer = User.force_login("foo@gmail.com", "Password1?").create_review(
+#     product_id, listing_id, "Not great", "Not terrible", "5"
+# )
