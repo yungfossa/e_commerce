@@ -56,7 +56,7 @@ class Admin:
             json={"category_title": name},
         )
 
-        return r.json().get("data")
+        return r.json().get("data"), r.status_code
 
     @logged()
     def add_product(

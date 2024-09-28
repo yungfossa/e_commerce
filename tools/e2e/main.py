@@ -48,8 +48,8 @@ def create_category():
     assert_eq(status_code, 200)
     assert_eq(len(categories), 3, "number of categories must equal to 3")
 
-    # TODO assert status code
-    admin.add_category("Drugs")
+    (categories, status_code) = admin.add_category("Drugs")
+    assert_eq(status_code, 201)
 
     (categories, status_code) = u.get_categories()
     assert_eq(status_code, 200)

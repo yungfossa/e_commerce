@@ -310,8 +310,10 @@ class Listing(BaseModel):
     review: Mapped[List["ListingReview"]] = relationship(
         back_populates="listing", cascade=CASCADE_ALL_DELETE_ORPHAN
     )
-    order_entries: Mapped[List["OrderEntry"]] = relationship(back_populates="listing")
-    wishlist_entry: Mapped[List["WishListEntry"]] = relationship(
+    order_entries: Mapped[Optional[List["OrderEntry"]]] = relationship(
+        back_populates="listing"
+    )
+    wishlist_entry: Mapped[Optional[List["WishListEntry"]]] = relationship(
         back_populates="listing"
     )
 
