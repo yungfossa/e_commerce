@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from marshmallow import ValidationError
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
@@ -98,13 +99,14 @@ def get_listings_reviews(listing_ulid):
 
 @listings_bp.route("/products", methods=["POST"])
 def get_products():
-    def to_dict(p: Product) -> dict:
+    def to_dict(p: Product, min_price: float) -> dict:
         return {
             "id": p.id,
             "name": p.name,
             "description": p.description,
             "image_src": p.image_src,
             "category": p.category.title,
+            "min_price": min_price,
         }
 
     try:
@@ -117,7 +119,13 @@ def get_products():
         return bad_request(verr.messages)
 
     try:
-        query = Product.query
+        query = (
+            db.session.query(
+                Product, func.coalesce(func.min(Listing.price), None).label("min_price")
+            )
+            .outerjoin(Listing)
+            .group_by(Product.id)
+        )
 
         if category:
             query = query.join(ProductCategory).filter(
@@ -126,7 +134,10 @@ def get_products():
 
         products = query.limit(limit).offset(offset).all()
 
-        return success_response(message="products", data=[to_dict(p) for p in products])
+        return success_response(
+            data=[to_dict(p, min_price) for p, min_price in products],
+            status_code=200,
+        )
 
     except SQLAlchemyError as e:
         db.session.rollback()
