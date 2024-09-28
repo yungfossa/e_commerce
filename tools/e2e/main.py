@@ -156,9 +156,7 @@ def create_order():
 
     (orders, status_code) = u.get_orders()
     assert_eq(status_code, 200)
-    assert_eq(
-        orders["pagination"]["total_items"], 1, "user must have 1 order"
-    )  # TODO: check this, is it correct?
+    assert_eq(orders["pagination"]["total_items"], 1, "user must have 1 order")
 
     print(json.dumps(orders, indent=2))
 

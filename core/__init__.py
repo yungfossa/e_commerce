@@ -107,4 +107,8 @@ def create_app(config_name):
 
     app.register_blueprint(admin_users_bp)
 
+    from .blueprints.seller.orders import seller_orders_bp
+
+    app.register_blueprint(seller_orders_bp)
+
     return app
