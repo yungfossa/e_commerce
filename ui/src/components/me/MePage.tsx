@@ -6,7 +6,6 @@ import Card from "../../shared/Card.tsx";
 import Header from "../../shared/Header.tsx";
 import styled from "styled-components";
 import Client from "../../shared/client/client.tsx";
-import { useGetProfileQuery } from "../../store/api.ts";
 
 const ProfileImage = styled.img`
 	border-radius: 50%;
@@ -21,17 +20,30 @@ const Wrapper = styled.div`
 const default_avatar_url =
 	"https://st3.depositphotos.com/9998432/13335/v/450/depositphotos_133352156-stock-illustration-default-placeholder-profile-icon.jpg";
 
-export default function() {
+export default function () {
 	const navigate = useNavigate();
 	const { showAlert } = useContext(AlertContext);
 
-	const { data, error, isLoading } = useGetProfileQuery('', {});
+	const access_token = useAppSelector((s) => s.user.access_token);
+	const client = new Client(access_token);
 
-	if (isLoading) {
+	const [profile, setProfile] = useState<any>(null);
+
+	useEffect(() => {
+		client
+			.get("http://localhost:5000/profile")
+			.then((r) => {
+				setProfile(r.data);
+			})
+			.catch((e) => {
+				showAlert("An error occured", "error");
+				navigate("/");
+			});
+	}, []);
+
+	if (!profile) {
 		return <>Loading...</>;
 	}
-
-	const profile = data.data;
 
 	return (
 		<>

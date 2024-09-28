@@ -26,9 +26,11 @@ def cart_summary(entries):
         current_amount = Decimal(current_price * entry.quantity)
         return {
             "product_name": entry.product_name,
+            "product_id": entry.product_id,
             "product_category": entry.product_category,
             "product_img": entry.product_img,
             "product_state": entry.product_state.value,
+            "listing_id": entry.listing_id,
             "price_per_unit": current_price,
             "quantity": entry.quantity,
             "amount": round(float(current_amount), 2),
@@ -62,10 +64,12 @@ def get_cart():
             .filter(CartEntry.cart_id == cart_id)
             .with_entities(
                 Product.name.label("product_name"),
+                Product.id.label("product_id"),
                 ProductCategory.title.label("product_category"),
                 Product.image_src.label("product_img"),
                 Listing.product_state,
                 Listing.price.label("price_per_unit"),
+                Listing.id.label("listing_id"),
                 CartEntry.quantity,
                 Seller.company_name,
             )

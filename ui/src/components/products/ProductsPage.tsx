@@ -1,6 +1,6 @@
 import { React, useEffect, useState, useContext } from "react";
 import styled from "styled-components";
-import { useAppDispatch, useAppSelector } from "../../hooks.ts";
+import { useAppSelector } from "../../hooks.ts";
 import { useParams } from "react-router-dom";
 import Header from "../../shared/Header.tsx";
 import { Link } from "react-router-dom";
@@ -8,6 +8,7 @@ import AlertContext from "../../components/Alert.tsx";
 import { useNavigate } from "react-router-dom";
 import Button from "../../shared/input/Button.tsx";
 import Client from "../../shared/client/client.tsx";
+import ReviewRating from "../../shared/ReviewRating.tsx";
 
 const ListingsWrapper = styled.div`
 	border: 1px black solid;
@@ -42,22 +43,22 @@ const Category = styled.div`
 const Store = styled.div`
 `;
 
-function createAddToCartFn(client, showAlert, lid) {
+function createAddToCartFn(client: Client, lid: string) {
+	const { showAlert } = useContext(AlertContext);
 	return () => {
 		client
 			.post("http://localhost:5000/cart", {
-				id: lid,
-				amount: 1,
+				listing_id: lid,
+				quantity: 1,
 			})
 			.then((r) => {
-				showAlert(JSON.stringify(r));
+				showAlert(JSON.stringify(r), "info");
 			});
 	};
 }
 
 export default function ProductsPage() {
 	const navigate = useNavigate();
-	const { showAlert } = useContext(AlertContext);
 
 	let { pid, lid } = useParams();
 
@@ -76,8 +77,7 @@ export default function ProductsPage() {
 			.then((r) => {
 				setProduct(r.data);
 				if (lid) {
-					console.log("filtering");
-					setListing(r.data.listings.filter((r) => r.id == lid)[0]);
+					setListing(r.data.listings.filter((r) => r.id === lid)[0]);
 				} else {
 					setListing(r.data.listings[0]);
 				}
@@ -86,7 +86,7 @@ export default function ProductsPage() {
 				showAlert("An error occured", "error");
 				navigate("/");
 			});
-	}, []);
+	}, [lid]);
 
 	if (product === null) {
 		return "Loading...";
@@ -114,43 +114,42 @@ export default function ProductsPage() {
 
 				<ListingWrapper>
 					<ul>
-						{product &&
-							product.listings.map((l) => {
-								return (
-									<ListingsWrapper>
-										<Link to={`/products/${pid}/${l.id}`}>
-											<p>{l.seller.name}</p>
-											<p>only {l.quantity} left</p>
-											<p>{l.price} dolla</p>
-										</Link>
-										{access_token ? (
-											<Button
-												text="buy"
-												onClick={createAddToCartFn(client, showAlert, l.id)}
-											></Button>
-										) : (
-											<Link to="/login">Wanna buy? Login</Link>
-										)}
-									</ListingsWrapper>
-								);
-							})}
+						{product?.listings.map((listing) => {
+							return (
+								<ListingsWrapper key={listing.id}>
+									<Link to={`/products/${pid}/${listing.id}`}>
+										<p>{listing.seller.name}</p>
+										<p>only {listing.quantity} left</p>
+										<p>{listing.price} dolla</p>
+									</Link>
+									{access_token ? (
+										<Button
+											text="add to cart"
+											width={300}
+											onClick={createAddToCartFn(client, listing.id)}
+										/>
+									) : (
+										<Link to="/login">Wanna buy? Login</Link>
+									)}
+								</ListingsWrapper>
+							);
+						})}
 					</ul>
 				</ListingWrapper>
 			</Wrapper>
 			Reviews:
 			<ul>
-				{product &&
-					product.listings.map((p: any) => {
-						return p.reviews.map((l: any) => {
-							return (
-								<ListingsWrapper>
-									<p>{l.title}</p>
-									<p>{l.description}</p>
-									<p>{l.rating}</p>
-								</ListingsWrapper>
-							);
-						});
-					})}
+				{product?.listings.map((p) => {
+					return p.reviews.map((l) => {
+						return (
+							<ListingsWrapper>
+								<p>{l.title}</p>
+								<p>{l.description}</p>
+								<ReviewRating score={l.rating} />
+							</ListingsWrapper>
+						);
+					});
+				})}
 			</ul>
 		</>
 	);
