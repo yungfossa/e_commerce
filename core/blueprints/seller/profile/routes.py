@@ -23,6 +23,12 @@ validate_edit_profile = EditSellerProfileSchema()
 @seller_profile_bp.route("/seller/profile", methods=["GET"])
 @required_user_type(["seller"])
 def get_profile():
+    """
+    Retrieve the profile information of the authenticated seller.
+
+    Returns:
+        JSON response containing the seller's profile information.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -56,6 +62,12 @@ def get_profile():
 @seller_profile_bp.route("/seller/profile", methods=["POST"])
 @required_user_type(["seller"])
 def edit_profile():
+    """
+    Edit the profile information of the authenticated seller.
+
+    Returns:
+        JSON response indicating the success of the profile update.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -93,6 +105,14 @@ def edit_profile():
 @seller_profile_bp.route("/seller/profile", methods=["DELETE"])
 @required_user_type(["seller"])
 def delete_profile():
+    """
+    Initiate the process of deleting the authenticated seller's profile.
+
+    This creates a DeleteRequest for the seller's account, which will be processed after 30 days.
+
+    Returns:
+        JSON response indicating the success of initiating the delete process.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -129,3 +149,28 @@ def delete_profile():
         return handle_exception(
             error=str(e),
         )
+
+
+# This module defines the routes for handling seller profile operations.
+
+# Key features:
+# - Retrieve seller profile information
+# - Edit seller profile information
+# - Initiate the process of deleting a seller's account
+
+# Security considerations:
+# - All routes are protected by the @required_user_type decorator, ensuring only sellers can access them
+# - The seller ID is obtained from the JWT token, preventing unauthorized access to other sellers' profiles
+
+# Note: This module uses SQLAlchemy for database operations and Marshmallow for request validation.
+
+# Error handling:
+# - ValidationErrors are caught and returned as bad requests
+# - SQLAlchemyErrors trigger a database rollback and are handled as exceptions
+# - General exceptions are also caught and handled appropriately
+
+# Future improvements could include:
+# - Implementing profile picture upload functionality
+# - Adding more detailed profile information fields
+# - Implementing a mechanism to cancel a delete request within the 30-day window
+# - Adding email notifications for profile changes and delete requests

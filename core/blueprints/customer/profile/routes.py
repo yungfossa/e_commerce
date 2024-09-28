@@ -37,6 +37,12 @@ validate_review_filters = ReviewFilterSchema()
 @customer_profile_bp.route("/profile", methods=["GET"])
 @required_user_type(["customer"])
 def get_profile():
+    """
+    Retrieve the profile information of the authenticated customer.
+
+    Returns:
+        JSON response containing customer profile data or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -69,6 +75,12 @@ def get_profile():
 @customer_profile_bp.route("/profile", methods=["POST"])
 @required_user_type(["customer"])
 def edit_profile():
+    """
+    Edit the profile information of the authenticated customer.
+
+    Returns:
+        JSON response indicating success or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -102,6 +114,12 @@ def edit_profile():
 @customer_profile_bp.route("/profile", methods=["DELETE"])
 @required_user_type(["customer"])
 def delete_profile():
+    """
+    Create a delete request for the authenticated customer's profile.
+
+    Returns:
+        JSON response indicating success or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -139,7 +157,13 @@ def delete_profile():
 @customer_profile_bp.route("/profile/reviews", methods=["GET"])
 @required_user_type(["customer"])
 def get_reviews():
-    costumer_id = get_jwt_identity()
+    """
+    Retrieve reviews created by the authenticated customer.
+
+    Returns:
+        JSON response containing a list of reviews and pagination information.
+    """
+    customer_id = get_jwt_identity()
 
     try:
         query_params = validate_review_filters.load(request.get_json())
@@ -151,7 +175,7 @@ def get_reviews():
         limit = query_params.get("limit")
         offset = query_params.get("offset")
 
-        query = ListingReview.query.filter_by(customer_id=costumer_id)
+        query = ListingReview.query.filter_by(customer_id=customer_id)
 
         if order_by == "newest":
             query = query.order_by(ListingReview.modified_at.desc())
@@ -160,7 +184,7 @@ def get_reviews():
         elif order_by == "highest":
             query = query.order_by(ListingReview.rating.desc())
         elif order_by == "lowest":
-            query = query.order_by(ListingReview.rating.desc())
+            query = query.order_by(ListingReview.rating.asc())
 
         reviews = query.limit(limit).offset(offset).all()
 
@@ -203,6 +227,16 @@ def get_reviews():
 )
 @required_user_type(["customer"])
 def create_review(product_ulid, listing_ulid):
+    """
+    Create a new review for a specific product listing.
+
+    Args:
+        product_ulid (str): The ULID of the product.
+        listing_ulid (str): The ULID of the listing.
+
+    Returns:
+        JSON response containing the new review ID or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -219,10 +253,7 @@ def create_review(product_ulid, listing_ulid):
             listing_id=listing_ulid,
         )
 
-        return success_response(
-            data={"id": _lr.id},
-            status_code=201,
-        )
+        return success_response(data={"id": _lr.id}, status_code=201)
 
     except SQLAlchemyError as sql_err:
         db.session.rollback()
@@ -235,7 +266,17 @@ def create_review(product_ulid, listing_ulid):
 
 
 @customer_profile_bp.route("/profile/reviews/<string:review_ulid>", methods=["PUT"])
+@required_user_type(["customer"])
 def edit_review(review_ulid):
+    """
+    Edit an existing review created by the authenticated customer.
+
+    Args:
+        review_ulid (str): The ULID of the review to edit.
+
+    Returns:
+        JSON response indicating success or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -277,6 +318,15 @@ def edit_review(review_ulid):
 @customer_profile_bp.route("/profile/reviews/<string:review_ulid>", methods=["DELETE"])
 @required_user_type(["customer"])
 def delete_customer_review(review_ulid):
+    """
+    Delete a review created by the authenticated customer.
+
+    Args:
+        review_ulid (str): The ULID of the review to delete.
+
+    Returns:
+        JSON response indicating success or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -301,3 +351,27 @@ def delete_customer_review(review_ulid):
         return handle_exception(
             error=str(e),
         )
+
+
+# This module defines the customer profile management endpoints.
+
+# Key features:
+# - Retrieve and edit customer profile information
+# - Create a delete request for the customer's profile
+# - Manage customer reviews (create, edit, delete, and retrieve)
+
+# Security considerations:
+# - All endpoints are protected by the @required_user_type decorator, ensuring only customers can access them
+# - The customer ID is obtained from the JWT token, preventing unauthorized access to other users' profiles and reviews
+
+# Note: This module uses SQLAlchemy for database operations and Marshmallow for request validation.
+
+# Error handling:
+# - ValidationErrors are caught and returned as bad requests
+# - SQLAlchemyErrors trigger a database rollback and are handled as exceptions
+# - General exceptions are also caught and handled appropriately
+
+# Future improvements could include:
+# - Implementing a more robust profile picture upload system
+# - Adding support for customer preferences or settings
+# - Implementing a review moderation system

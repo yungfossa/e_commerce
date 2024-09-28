@@ -1,4 +1,5 @@
-from marshmallow import Schema, fields, post_load, validates_schema
+import requests
+from marshmallow import Schema, ValidationError, fields, post_load, validates_schema
 from marshmallow.validate import Length, OneOf, Range
 
 INVALID_ARG_KEY = "invalid arg"
@@ -7,6 +8,13 @@ NOMINATIM_API_URL = "https://nominatim.openstreetmap.org/search"
 
 
 class OrderCreationSchema(Schema):
+    """
+    Schema for validating order creation data.
+
+    This schema ensures that all required address fields are provided
+    and validates the address using an external geocoding service.
+    """
+
     address_street = fields.String(
         required=True,
         validate=Length(min=1),
@@ -35,25 +43,34 @@ class OrderCreationSchema(Schema):
 
     @validates_schema
     def validate_address(self, data, **kwargs):
-        # response = requests.get(
-        #     NOMINATIM_API_URL,
-        #     params={
-        #         "street": data["address_street"],
-        #         "city": data["address_city"],
-        #         "state": data["address_state"],
-        #         "country": data["address_country"],
-        #         "postalcode": data["address_postal_code"],
-        #         "format": "json",
-        #     },
-        #     headers={"User-Agent": "ShopSphere/1.0"},
-        # )
-        # result = response.json()
-        # if not result:
-        #     raise ValidationError("Invalid address")
-        return
+        """
+        Validate the complete address using the Nominatim geocoding service.
+
+        Args:
+            data (dict): The address data to validate.
+
+        Raises:
+            ValidationError: If the address is invalid or not found.
+        """
+        response = requests.get(
+            NOMINATIM_API_URL,
+            params={
+                "street": data["address_street"],
+                "city": data["address_city"],
+                "state": data["address_state"],
+                "country": data["address_country"],
+                "postalcode": data["address_postal_code"],
+                "format": "json",
+            },
+            headers={"User-Agent": "ShopSphere/1.0"},
+        )
+        result = response.json()
+        if not result:
+            raise ValidationError("Invalid address")
 
     @post_load
     def get_validated_order_data(self, data, **kwargs):
+        """Transform validated order data into the expected format."""
         return {
             "address_street": data.get("address_street"),
             "address_city": data.get("address_city"),
@@ -64,6 +81,13 @@ class OrderCreationSchema(Schema):
 
 
 class OrderSummaryFilterSchema(Schema):
+    """
+    Schema for validating order summary filter parameters.
+
+    This schema defines and validates various filter options for retrieving order summaries,
+    including pagination, sorting, and status filtering.
+    """
+
     offset = fields.Integer(
         required=False,
         missing=0,
@@ -97,6 +121,7 @@ class OrderSummaryFilterSchema(Schema):
 
     @post_load
     def get_validated_order_history_filters(self, data, **kwargs):
+        """Transform validated filter data into the expected format."""
         return {
             "offset": data.get("offset"),
             "limit": data.get("limit"),

@@ -21,6 +21,14 @@ validation_users_filters = AdminUsersFiltersSchema()
 @admin_users_bp.route("/admin/users", methods=["GET"])
 @required_user_type(["admin"])
 def get_users():
+    """
+    Retrieve a list of users with filtering and pagination.
+
+    This endpoint allows admins to fetch a list of users with sorting and pagination options.
+
+    Returns:
+        A JSON response containing the list of users and pagination information.
+    """
     try:
         data = validation_users_filters.load(request.get_json())
     except ValidationError as err:
@@ -67,6 +75,17 @@ def get_users():
 @admin_users_bp.route("/admin/users/<string:user_ulid>", methods=["GET"])
 @required_user_type(["admin"])
 def get_user(user_ulid):
+    """
+    Retrieve details of a specific user.
+
+    This endpoint allows admins to fetch details of a specific user by their ULID.
+
+    Args:
+        user_ulid (str): The ULID of the user to retrieve.
+
+    Returns:
+        A JSON response containing the user's details (excluding password).
+    """
     try:
         user = User.query.get(user_ulid)
         if not user:
@@ -83,6 +102,18 @@ def get_user(user_ulid):
 @admin_users_bp.route("/admin/users/<string:user_ulid>", methods=["POST"])
 @required_user_type(["admin"])
 def delete_user(user_ulid):
+    """
+    Create a delete request for a user.
+
+    This endpoint allows admins to create a delete request for a user. The user will be
+    scheduled for deletion after 30 days.
+
+    Args:
+        user_ulid (str): The ULID of the user to be deleted.
+
+    Returns:
+        A JSON response indicating success or failure of the delete request creation.
+    """
     try:
         data = validation_delete_user.load(request.get_json())
     except ValidationError as err:
@@ -116,3 +147,21 @@ def delete_user(user_ulid):
         return handle_exception(error=str(sql_err))
     except Exception as e:
         return handle_exception(error=str(e))
+
+
+# This module defines the admin user management endpoints.
+# It includes functionality for retrieving user lists, getting specific user details,
+# and creating delete requests for users.
+
+# Key features:
+# - Pagination and sorting for user list retrieval
+# - Detailed error handling for database operations and validation errors
+# - User deletion process with a 30-day delay
+# - Prevention of admin user deletion
+
+# Note: All endpoints require admin privileges, enforced by the @required_user_type decorator.
+
+# Important considerations:
+# - User passwords are excluded from the returned data for security reasons
+# - Delete requests are used instead of immediate deletion to allow for potential recovery
+# - The module uses UTC for timestamp calculations to ensure consistency across different timezones

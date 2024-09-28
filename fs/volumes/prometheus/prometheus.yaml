@@ -1,7 +1,33 @@
+# Prometheus configuration file
+
 global:
-  scrape_interval: 10s
+  scrape_interval: 10s  # Set the scrape interval to every 10 seconds
 
 scrape_configs:
-  - job_name: 'shopsphere'
+  - job_name: 'shopsphere'  # Name of the job for scraping metrics from the ShopSphere application
     static_configs:
-      - targets: ['host.docker.internal:5000']
+      - targets: ['host.docker.internal:5000']  # Target endpoint for scraping metrics
+
+# This YAML file configures Prometheus, an open-source systems monitoring and alerting toolkit.
+
+# Global configuration:
+# - scrape_interval: Defines how frequently Prometheus will scrape targets for metrics.
+#   Here, it's set to 10 seconds, meaning Prometheus will collect metrics every 10 seconds.
+
+# Scrape configurations:
+# - job_name: A logical name for the scrape job. In this case, it's named 'shopsphere',
+#   likely referring to the main application being monitored.
+# - static_configs: Defines a static list of targets for Prometheus to scrape.
+# - targets: The specific endpoints Prometheus will scrape for metrics.
+#   'host.docker.internal:5000' is used here, which is a special DNS name used in
+#   Docker for Windows and Mac to reference the host machine. This suggests that
+#   the application exposing metrics is running on the host machine's port 5000.
+
+# Note: Ensure that the application at host.docker.internal:5000 is actually exposing
+# Prometheus-compatible metrics at its /metrics endpoint for this configuration to work.
+
+# For more advanced setups, you might want to consider adding:
+# - Additional scrape jobs for other services
+# - Service discovery mechanisms for dynamic environments
+# - Relabeling rules to modify labels on scraped metrics
+# - Alert rules to define conditions for sending alerts

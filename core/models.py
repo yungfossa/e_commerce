@@ -39,6 +39,13 @@ CASCADE_ALL_DELETE_ORPHAN = "all, delete-orphan"
 
 
 class ULID(TypeDecorator):
+    """
+    Custom type for ULID (Universally Unique Lexicographically Sortable Identifier).
+
+    This type is used as a primary key for most models, providing a sortable,
+    URL-safe alternative to UUIDs.
+    """
+
     impl = CHAR(26)
     cache_ok = True
 
@@ -55,6 +62,8 @@ class ULID(TypeDecorator):
 
 
 class UserType(enum.Enum):
+    """Enum representing different types of users in the system."""
+
     USER = "user"
     ADMIN = "admin"
     CUSTOMER = "customer"
@@ -62,12 +71,16 @@ class UserType(enum.Enum):
 
 
 class ProductState(enum.Enum):
+    """Enum representing different states a product can be in."""
+
     NEW = "new"
     USED = "used"
     REFURBISHED = "refurbished"
 
 
 class OrderStatus(enum.Enum):
+    """Enum representing different statuses an order can have."""
+
     PENDING = "pending"
     SHIPPED = "shipped"
     DELIVERED = "delivered"
@@ -75,6 +88,8 @@ class OrderStatus(enum.Enum):
 
 
 class ReviewRate(enum.Enum):
+    """Enum representing possible ratings for a review."""
+
     ONE = 1
     TWO = 2
     THREE = 3
@@ -83,6 +98,8 @@ class ReviewRate(enum.Enum):
 
 
 class TokenBlocklist(BaseModel):
+    """Model for storing blocked JWT tokens."""
+
     __tablename__ = "tokens_blocklist"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -94,6 +111,13 @@ class TokenBlocklist(BaseModel):
 
 
 class User(BaseModel):
+    """
+    Base User model representing common attributes for all user types.
+
+    This model uses SQLAlchemy's joined table inheritance to create
+    specialized user types (Admin, Customer, Seller).
+    """
+
     __tablename__ = "users"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -126,6 +150,7 @@ class User(BaseModel):
     }
 
     def get_reset_password_token(self, expires_in=1200):
+        """Generate a password reset token for the user."""
         return jwt.encode(
             {"reset_password": self.id, "exp": time() + expires_in},
             current_app.config["SECRET_KEY"],
@@ -134,6 +159,7 @@ class User(BaseModel):
 
     @staticmethod
     def verify_reset_password_token(token):
+        """Verify a password reset token and return the associated user."""
         try:
             _id = jwt.decode(
                 token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
@@ -143,6 +169,7 @@ class User(BaseModel):
         return db.session.get(User, _id)
 
     def get_account_verification_token(self, expires_in=86400):  # 24 hours
+        """Generate an account verification token for the user."""
         return jwt.encode(
             {"verify_account": self.id, "exp": time() + expires_in},
             current_app.config["SECRET_KEY"],
@@ -151,6 +178,7 @@ class User(BaseModel):
 
     @staticmethod
     def verify_account_verification_token(token):
+        """Verify an account verification token and return the associated user."""
         try:
             _id = jwt.decode(
                 token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
@@ -161,6 +189,8 @@ class User(BaseModel):
 
 
 class Admin(User):
+    """Admin user model, inheriting from User."""
+
     __tablename__ = "admins"
     id: Mapped[str] = mapped_column(
         ULID,
@@ -173,6 +203,8 @@ class Admin(User):
 
 
 class Seller(User):
+    """Seller user model, inheriting from User."""
+
     __tablename__ = "sellers"
     id: Mapped[str] = mapped_column(
         ULID,
@@ -192,6 +224,8 @@ class Seller(User):
 
 
 class Customer(User):
+    """Customer user model, inheriting from User."""
+
     __tablename__ = "customers"
     id: Mapped[str] = mapped_column(
         ULID,
@@ -227,6 +261,8 @@ class Customer(User):
 
 
 class CustomerAddress(BaseModel):
+    """Model representing a customer's address."""
+
     __tablename__ = "customer_addresses"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -244,6 +280,8 @@ class CustomerAddress(BaseModel):
 
 
 class ProductCategory(BaseModel):
+    """Model representing a product category."""
+
     __tablename__ = "product_categories"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -273,6 +311,8 @@ ProductWordOccurrence = Table(
 
 
 class Product(BaseModel):
+    """Model representing a product."""
+
     __tablename__ = "products"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -290,6 +330,8 @@ class Product(BaseModel):
 
 
 class Listing(BaseModel):
+    """Model representing a product listing by a seller."""
+
     __tablename__ = "listings"
 
     id: Mapped[str] = mapped_column(
@@ -319,6 +361,8 @@ class Listing(BaseModel):
 
 
 class ListingReview(BaseModel):
+    """Model representing a review for a product listing."""
+
     __tablename__ = "reviews"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -338,6 +382,8 @@ class ListingReview(BaseModel):
 
 
 class CartEntry(BaseModel):
+    """Model representing an item in a customer's cart."""
+
     __tablename__ = "cart_entries"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -351,6 +397,8 @@ class CartEntry(BaseModel):
 
 
 class Cart(BaseModel):
+    """Model representing a customer's shopping cart."""
+
     __tablename__ = "carts"
     customer_id: Mapped[str] = mapped_column(
         ULID, ForeignKey(CUSTOMERS_ID), primary_key=True
@@ -365,6 +413,12 @@ class Cart(BaseModel):
 
 
 class WishListEntry(BaseModel):
+    """
+    Model representing an item in a customer's wishlist.
+
+    This model creates a many-to-many relationship between WishList and Listing.
+    """
+
     __tablename__ = "wishlist_entries"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -378,6 +432,12 @@ class WishListEntry(BaseModel):
 
 
 class WishList(BaseModel):
+    """
+    Model representing a customer's wishlist.
+
+    A customer can have multiple wishlists, each with a unique name.
+    """
+
     __tablename__ = "wishlists"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -392,6 +452,12 @@ class WishList(BaseModel):
 
 
 class OrderEntry(BaseModel):
+    """
+    Model representing an individual item in an order.
+
+    Each entry corresponds to a specific listing and quantity ordered.
+    """
+
     __tablename__ = "order_entries"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -405,6 +471,12 @@ class OrderEntry(BaseModel):
 
 
 class Order(BaseModel):
+    """
+    Model representing a customer's order.
+
+    Includes order details, status, and shipping address information.
+    """
+
     __tablename__ = "orders"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -424,6 +496,12 @@ class Order(BaseModel):
 
 
 class DeleteRequest(BaseModel):
+    """
+    Model representing a user's request to delete their account.
+
+    Includes the reason for deletion and scheduled deletion time.
+    """
+
     __tablename__ = "delete_requests"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -437,6 +515,12 @@ class DeleteRequest(BaseModel):
 
 
 class WordOccurrence(BaseModel):
+    """
+    Model representing the occurrence of words in product descriptions.
+
+    This model creates a many-to-many relationship between Word and Product.
+    """
+
     __tablename__ = "word_occurrences"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -449,6 +533,12 @@ class WordOccurrence(BaseModel):
 
 
 class Word(BaseModel):
+    """
+    Model representing individual words used in product descriptions.
+
+    This model is used for efficient text search and analysis.
+    """
+
     __tablename__ = "words"
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
@@ -462,6 +552,12 @@ class Word(BaseModel):
 
 
 class MVProductCategory(BaseModel):
+    """
+    Materialized view combining product and category information.
+
+    This view is used to optimize queries that frequently join Product and ProductCategory tables.
+    """
+
     __table__ = create_materialized_view(
         name="mv_product_categories",
         selectable=select(
@@ -479,3 +575,17 @@ class MVProductCategory(BaseModel):
         ),
         metadata=BaseModel.metadata,
     )
+
+
+# This module defines additional models for the e-commerce application.
+# All models inherit from BaseModel, which provides CRUD operations and serialization capabilities.
+
+# Key features:
+# - Use of ULID for primary keys, providing sortable, URL-safe identifiers
+# - Complex relationships between models, including many-to-many relationships
+# - Use of materialized views for query optimization
+# - Detailed tracking of user deletion requests
+# - Word occurrence tracking for advanced product search capabilities
+
+# These models extend the core functionality of the e-commerce platform,
+# enabling features like wishlists, detailed order tracking, and efficient text search.

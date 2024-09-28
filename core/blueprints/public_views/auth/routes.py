@@ -36,6 +36,12 @@ reset_password_schema = ResetPasswordSchema()
 
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
+    """
+    Handle user registration.
+
+    Returns:
+        JSON response with registration status and verification token (in development mode).
+    """
     config_name = current_app.config["NAME"]
 
     try:
@@ -84,6 +90,15 @@ def signup():
 
 @auth_bp.route("/verify/<token>", methods=["GET"])
 def confirm_email(token):
+    """
+    Confirm user's email address using the provided token.
+
+    Args:
+        token (str): The email verification token.
+
+    Returns:
+        JSON response indicating the result of the email confirmation.
+    """
     user = User.verify_account_verification_token(token)
 
     if not user:
@@ -99,6 +114,12 @@ def confirm_email(token):
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    """
+    Handle user login.
+
+    Returns:
+        JSON response with login status and access token.
+    """
     try:
         validated_data = login_credentials_schema.load(data=request.get_json())
     except ValidationError as err:
@@ -140,6 +161,15 @@ def login():
 
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token):
+    """
+    Reset user's password using the provided token.
+
+    Args:
+        token (str): The password reset token.
+
+    Returns:
+        JSON response indicating the result of the password reset.
+    """
     user = User.verify_reset_password_token(token)
 
     if not user:
@@ -161,6 +191,12 @@ def reset_password(token):
 
 @auth_bp.route("/reset-password-request", methods=["POST"])
 def request_password_change():
+    """
+    Handle password reset request.
+
+    Returns:
+        JSON response indicating that a password reset email has been sent (if the user exists).
+    """
     try:
         validated_data = request_password_schema.load(data=request.get_json())
     except ValidationError as err:
@@ -182,6 +218,16 @@ def request_password_change():
 
 @jwt_manager.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
+    """
+    Check if a JWT token has been revoked.
+
+    Args:
+        jwt_header (dict): The JWT header.
+        jwt_payload (dict): The JWT payload.
+
+    Returns:
+        bool: True if the token is revoked, False otherwise.
+    """
     jti = jwt_payload["jti"]
     token = TokenBlocklist.query.filter_by(jti=jti).first()
     return token is not None
@@ -190,6 +236,12 @@ def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
 @auth_bp.route("/logout", methods=["DELETE"])
 @jwt_required()
 def revoke_token():
+    """
+    Revoke the current user's JWT token (logout).
+
+    Returns:
+        JSON response indicating successful logout.
+    """
     jwt_payload = get_jwt()
     jti = jwt_payload["jti"]
     exp = datetime.fromtimestamp(jwt_payload["exp"], timezone.utc)
@@ -200,3 +252,29 @@ def revoke_token():
     )
 
     return success_response(message="Logout successful")
+
+
+# This module handles user authentication operations including signup, login, logout,
+# email verification, and password reset functionality.
+
+# Key features:
+# - User registration with email verification
+# - User login with JWT token generation
+# - Password reset functionality
+# - Token revocation for logout
+# - Email confirmation for new accounts
+
+# Security considerations:
+# - Passwords are hashed using bcrypt before storage
+# - JWT tokens are used for authentication
+# - Email verification is required before allowing login
+# - Tokens are checked against a blocklist to prevent use of revoked tokens
+
+# Note: This module relies on Flask-JWT-Extended for JWT operations and
+# custom utility functions for email sending and response formatting.
+
+# Future improvements could include:
+# - Implementing refresh tokens for better security
+# - Adding rate limiting to prevent brute force attacks
+# - Enhancing password policies (e.g., requiring certain characters, minimum length)
+# - Implementing multi-factor authentication

@@ -36,6 +36,12 @@ validate_listings_filters = ListingsFilterSchema()
 
 @listings_bp.route("/categories", methods=["GET"])
 def get_categories():
+    """
+    Retrieve all product categories.
+
+    Returns:
+        JSON response containing all product categories.
+    """
     product_categories = ProductCategory.query.all()
 
     return success_response(
@@ -45,6 +51,15 @@ def get_categories():
 
 @listings_bp.route("/listings/<string:listing_ulid>/reviews", methods=["POST"])
 def get_listings_reviews(listing_ulid):
+    """
+    Retrieve reviews for a specific listing.
+
+    Args:
+        listing_ulid (str): The unique identifier of the listing.
+
+    Returns:
+        JSON response containing the reviews for the specified listing.
+    """
     try:
         query_params = validate_review_filters.load(request.get_json())
 
@@ -54,6 +69,7 @@ def get_listings_reviews(listing_ulid):
 
         query = ListingReview.query.filter_by(listing_id=listing_ulid)
 
+        # Apply ordering based on the order_by parameter
         if order_by == "newest":
             query = query.order_by(ListingReview.modified_at.desc())
         elif order_by == "oldest":
@@ -99,6 +115,13 @@ def get_listings_reviews(listing_ulid):
 
 @listings_bp.route("/products", methods=["POST"])
 def get_products():
+    """
+    Retrieve products based on specified filters.
+
+    Returns:
+        JSON response containing the filtered products.
+    """
+
     def to_dict(p: Product, min_price: float) -> dict:
         return {
             "id": p.id,
@@ -149,6 +172,15 @@ def get_products():
 
 @listings_bp.route("/products/<string:product_ulid>", methods=["POST"])
 def get_product_listings_and_reviews(product_ulid):
+    """
+    Retrieve listings and reviews for a specific product.
+
+    Args:
+        product_ulid (str): The unique identifier of the product.
+
+    Returns:
+        JSON response containing the product details, listings, and reviews.
+    """
     try:
         data = validate_listings_filters.load(request.get_json())
     except ValidationError as verr:
@@ -177,6 +209,7 @@ def get_product_listings_and_reviews(product_ulid):
             .filter(Product.id == product_ulid)
         )
 
+        # Apply ordering based on the provided parameters
         order_by_mapping = {
             "price": price_order_by,
             "view_count": view_count_order_by,
@@ -251,6 +284,16 @@ def get_product_listings_and_reviews(product_ulid):
     "/products/<string:product_ulid>/<string:listing_ulid>", methods=["GET"]
 )
 def get_listing(product_ulid, listing_ulid):
+    """
+    Retrieve details for a specific listing of a product.
+
+    Args:
+        product_ulid (str): The unique identifier of the product.
+        listing_ulid (str): The unique identifier of the listing.
+
+    Returns:
+        JSON response containing the listing details, including product information and reviews.
+    """
     try:
         listing = (
             Listing.query.options(
@@ -312,6 +355,15 @@ def get_listing(product_ulid, listing_ulid):
 
 @listings_bp.route("/products/<string:seller_ulid>", methods=["GET"])
 def get_seller_listings(seller_ulid):
+    """
+    Retrieve all listings for a specific seller.
+
+    Args:
+        seller_ulid (str): The unique identifier of the seller.
+
+    Returns:
+        JSON response containing all listings for the specified seller.
+    """
     try:
         seller = Seller.query.filter_by(id=seller_ulid).first()
 
@@ -357,6 +409,15 @@ def get_seller_listings(seller_ulid):
 
 @listings_bp.route("/products/<string:seller_ulid>/reviews", methods=["GET"])
 def get_seller_reviews(seller_ulid):
+    """
+    Retrieve all reviews for a specific seller's listings.
+
+    Args:
+        seller_ulid (str): The unique identifier of the seller.
+
+    Returns:
+        JSON response containing all reviews for the specified seller's listings.
+    """
     try:
         seller = Seller.query.filter_by(id=seller_ulid).first()
 
@@ -396,3 +457,25 @@ def get_seller_reviews(seller_ulid):
         return handle_exception(str(sql_err))
     except Exception as e:
         return handle_exception(str(e))
+
+
+# This module defines the routes for handling product listings, reviews, and related operations.
+
+# Key features:
+# - Retrieve product categories
+# - Get reviews for specific listings
+# - Fetch products with filtering and pagination
+# - Retrieve product listings and reviews
+# - Get details for specific listings
+# - Fetch listings and reviews for specific sellers
+
+# Note: This module uses SQLAlchemy for database operations and Marshmallow for request validation.
+
+# Error handling:
+# - ValidationErrors are caught and returned as bad requests
+# - SQLAlchemyErrors and general exceptions are handled and appropriate error responses are returned
+
+# Future improvements could include:
+# - Implementing caching for frequently accessed data (e.g., product categories)
+# - Adding more advanced filtering and search capabilities
+# - Implementing rate limiting to prevent abuse of these endpoints

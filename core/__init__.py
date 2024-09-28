@@ -12,23 +12,39 @@ from .utils import init_db
 
 
 def create_app(config_name):
+    """
+    Create and configure the Flask application.
+
+    This function sets up the Flask app with all necessary extensions,
+    configurations, and blueprints based on the specified configuration name.
+
+    Args:
+        config_name (str): The name of the configuration to use (e.g., 'development', 'production').
+
+    Returns:
+        Flask: The configured Flask application instance.
+    """
+    # Set up OpenTelemetry instrumentation for production
     if config_name == "production":
         build_instrumentation(
             app_config[config_name].AGENT_HOSTNAME, app_config[config_name].AGENT_PORT
         )
 
+    # Create Flask app and set up Prometheus metrics
     app = Flask(__name__)
     metrics = PrometheusMetrics.for_app_factory()
 
+    # Set up additional instrumentation for production
     if config_name == "production":
         SQLAlchemyInstrumentor().instrument(engine=db.engine)
-
         FlaskInstrumentor().instrument_app(app)
         RequestsInstrumentor().instrument()
 
+    # Load configuration
     app.config.from_object(app_config[config_name])
     app.config.from_pyfile("config.py")
 
+    # Initialize Flask extensions
     metrics.init_app(app)
     cors.init_app(app)
     bcrypt.init_app(app)
@@ -37,6 +53,7 @@ def create_app(config_name):
     db.init_app(app)
     scheduler.init_app(app)
 
+    # Import scheduler jobs
     from .scheduler_jobs import (
         cleanup_delete_requests as cleanup_delete_requests,
     )
@@ -44,13 +61,16 @@ def create_app(config_name):
         cleanup_tokens_blocklist as cleanup_tokens_blocklist,
     )
 
+    # Start the scheduler
     scheduler.start()
 
+    # Initialize database with data from YAML file
     with app.app_context():
         with open("data/init.yaml") as f:
             init_data = yaml.safe_load(f)
         init_db(init_data)
 
+    # Register blueprints
     from .blueprints.errors import errors_bp
 
     app.register_blueprint(errors_bp)
@@ -112,3 +132,22 @@ def create_app(config_name):
     app.register_blueprint(seller_orders_bp)
 
     return app
+
+
+# This module is responsible for creating and configuring the Flask application.
+# It sets up all necessary extensions, loads configurations, initializes the database,
+# and registers all blueprints for different parts of the application.
+
+# The create_app function follows the application factory pattern, which allows
+# for easy creation of the app with different configurations (e.g., for testing).
+
+# Key components:
+# - OpenTelemetry instrumentation for tracing (in production)
+# - Prometheus metrics for monitoring
+# - Various Flask extensions (CORS, JWT, email, scheduler, etc.)
+# - Database initialization with data from a YAML file
+# - Multiple blueprints for different areas of the application (public views,
+#   customer views, seller views, admin views)
+
+# Note: The configuration and some imports are assumed to be defined in other files
+# within the 'core' package.

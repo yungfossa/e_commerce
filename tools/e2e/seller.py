@@ -7,14 +7,33 @@ from utils import PREFIX, assert_eq, logged
 
 @dataclass
 class Seller:
+    """
+    Represents a seller in the e-commerce system.
+
+    This class provides methods for seller operations such as login,
+    creating listings, and managing orders.
+    """
+
     email: str
     password: str
-
     access_token: str
 
     @logged()
     @staticmethod
     def login(email: str, password: str) -> Self:
+        """
+        Authenticate a seller and create a Seller instance.
+
+        Args:
+            email (str): The seller's email address.
+            password (str): The seller's password.
+
+        Returns:
+            Seller: An authenticated Seller instance.
+
+        Raises:
+            AssertionError: If the login request fails.
+        """
         s = requests.Session()
 
         r = s.post(
@@ -37,6 +56,18 @@ class Seller:
     def create_listing(
         self, product_id: str, quantity: int, price: float, product_state: str
     ) -> (any, int):
+        """
+        Create a new listing for a product.
+
+        Args:
+            product_id (str): The ID of the product to list.
+            quantity (int): The quantity available for sale.
+            price (float): The price of the product.
+            product_state (str): The condition of the product (e.g., "new", "used").
+
+        Returns:
+            tuple: A tuple containing the response data and status code.
+        """
         s = requests.Session()
 
         r = s.post(
@@ -54,6 +85,15 @@ class Seller:
 
     @logged()
     def get_orders(self, filters=None):
+        """
+        Retrieve orders for the seller, with optional filtering.
+
+        Args:
+            filters (dict, optional): A dictionary of filter parameters.
+
+        Returns:
+            tuple: A tuple containing the response data and status code.
+        """
         s = requests.Session()
 
         if filters is None:
@@ -71,6 +111,15 @@ class Seller:
 
     @logged()
     def get_order(self, order_id: str):
+        """
+        Retrieve details of a specific order.
+
+        Args:
+            order_id (str): The ID of the order to retrieve.
+
+        Returns:
+            tuple: A tuple containing the response data and status code.
+        """
         s = requests.Session()
 
         r = s.get(
@@ -84,6 +133,16 @@ class Seller:
 
     @logged()
     def update_order_status(self, order_id: str, new_status: str):
+        """
+        Update the status of a specific order.
+
+        Args:
+            order_id (str): The ID of the order to update.
+            new_status (str): The new status to set for the order.
+
+        Returns:
+            tuple: A tuple containing the response data and status code.
+        """
         s = requests.Session()
 
         r = s.post(

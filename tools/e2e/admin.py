@@ -7,6 +7,10 @@ from utils import PREFIX, assert_eq, logged
 
 @dataclass
 class Admin:
+    """
+    Represents an admin user with methods to interact with the admin API.
+    """
+
     email: str
     password: str
 
@@ -15,6 +19,19 @@ class Admin:
     @logged()
     @staticmethod
     def login(email: str, password: str) -> Self:
+        """
+        Authenticates an admin user and returns an Admin instance.
+
+        Args:
+            email (str): The admin's email address.
+            password (str): The admin's password.
+
+        Returns:
+            Admin: An authenticated Admin instance.
+
+        Raises:
+            AssertionError: If the login request fails.
+        """
         s = requests.Session()
 
         r = s.post(
@@ -35,6 +52,15 @@ class Admin:
 
     @logged()
     def reset_db(self):
+        """
+        Resets the database.
+
+        Returns:
+            dict: The response data from the reset operation.
+
+        Raises:
+            AssertionError: If the reset request fails.
+        """
         s = requests.Session()
 
         r = s.get(
@@ -48,6 +74,15 @@ class Admin:
 
     @logged()
     def add_category(self, name: str):
+        """
+        Adds a new category to the system.
+
+        Args:
+            name (str): The name of the category to add.
+
+        Returns:
+            tuple: A tuple containing the response data and status code.
+        """
         s = requests.Session()
 
         r = s.put(
@@ -62,6 +97,18 @@ class Admin:
     def add_product(
         self, name: str, description: str, image_src: str, category: str
     ) -> (any, int):
+        """
+        Adds a new product to the system.
+
+        Args:
+            name (str): The name of the product.
+            description (str): The product description.
+            image_src (str): The URL or path to the product image.
+            category (str): The category of the product.
+
+        Returns:
+            tuple: A tuple containing the response data and status code.
+        """
         s = requests.Session()
 
         r = s.put(

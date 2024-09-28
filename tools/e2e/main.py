@@ -8,12 +8,22 @@ from utils import assert_eq, before, test
 
 
 def reset():
+    """Reset the database to a clean state."""
     Admin.login("admin@shopsphere.com", "changeme").reset_db()
 
 
 @test("it should create a user")
 @before(reset)
 def create_users():
+    """
+    Test user creation, verification, and login process.
+
+    This test ensures that:
+    1. A user can sign up
+    2. An unverified user cannot access their profile
+    3. A verified but not logged in user cannot access their profile
+    4. A verified and logged in user can access their profile
+    """
     u = User.signup(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
     (profile, status_code) = u.profile()
     assert_eq(status_code, 422)
@@ -30,6 +40,14 @@ def create_users():
 @test("when creating a fresh account, the cart should be empty")
 @before(reset)
 def empty_cart():
+    """
+    Test that a newly created user has an empty cart.
+
+    This test ensures that:
+    1. A new user can be created
+    2. The new user's cart is empty
+    3. The cart total is zero
+    """
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
     (cart, status_code) = u.cart()
     assert_eq(status_code, 200)
@@ -40,10 +58,18 @@ def empty_cart():
 @test("it should properly create a new category")
 @before(reset)
 def create_category():
+    """
+    Test category creation by an admin.
+
+    This test ensures that:
+    1. An admin can log in
+    2. A user can retrieve the initial categories
+    3. An admin can add a new category
+    4. The new category is visible to users
+    """
     admin = Admin.login("admin@shopsphere.com", "changeme")
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
 
-    # make sure the admin can create new categories
     (categories, status_code) = u.get_categories()
     assert_eq(status_code, 200)
     assert_eq(len(categories), 3, "number of categories must equal to 3")
@@ -59,10 +85,18 @@ def create_category():
 @test("an admin should be able to create a new product")
 @before(reset)
 def create_product():
+    """
+    Test product creation by an admin.
+
+    This test ensures that:
+    1. An admin can log in
+    2. Initially, there are no products
+    3. An admin can add a new product
+    4. The new product is visible to users
+    """
     admin = Admin.login("admin@shopsphere.com", "changeme")
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
 
-    # initially the products should be empty
     (products, status_code) = u.get_products()
     assert_eq(status_code, 200)
     assert_eq(products, [])
@@ -75,7 +109,6 @@ def create_product():
     )
     assert_eq(status_code, 201)
 
-    # we should have a single product
     (products, status_code) = u.get_products()
     assert_eq(status_code, 200)
     assert_eq(len(products), 1)
@@ -86,6 +119,14 @@ def create_product():
 )
 @before(reset)
 def create_listing():
+    """
+    Test listing creation by a seller and its visibility to users.
+
+    This test ensures that:
+    1. An admin can create a product
+    2. A seller can create a listing for that product
+    3. A user can view the listing
+    """
     admin = Admin.login("admin@shopsphere.com", "changeme")
     seller = Seller.login("sales@amazon.com", "changeme")
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
@@ -112,6 +153,18 @@ def create_listing():
 @test("a user should be able to create an order")
 @before(reset)
 def create_order():
+    """
+    Test the entire order creation process.
+
+    This test ensures that:
+    1. An admin can create a product
+    2. A seller can create a listing for that product
+    3. A user can view the listing
+    4. A user can add the item to their cart
+    5. A user can create an order from their cart
+    6. The order details are correct
+    7. The cart is emptied after order creation
+    """
     admin = Admin.login("admin@shopsphere.com", "changeme")
     seller = Seller.login("sales@amazon.com", "changeme")
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")

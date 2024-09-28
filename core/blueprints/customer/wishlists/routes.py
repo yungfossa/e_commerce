@@ -30,6 +30,16 @@ validate_wl = WishlistsDetailsSchema()
 
 
 def wishlist_summary(wishlist):
+    """
+    Generate a summary of the wishlist contents.
+
+    Args:
+        wishlist: A wishlist object with associated entries.
+
+    Returns:
+        A dictionary containing wishlist details and its entries.
+    """
+
     def wishlist_entry_to_dict(entry):
         return {
             "product_name": entry.product.name,
@@ -53,6 +63,15 @@ def wishlist_summary(wishlist):
 @customer_wishlists_bp.route("/wishlists/<string:ulid>", methods=["GET"])
 @required_user_type(["customer"])
 def get_wishlist_content(ulid):
+    """
+    Retrieve the contents of a specific wishlist.
+
+    Args:
+        ulid (str): The unique identifier of the wishlist.
+
+    Returns:
+        JSON response containing the wishlist summary or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -99,6 +118,15 @@ def get_wishlist_content(ulid):
 @customer_wishlists_bp.route("/wishlists/<string:ulid>", methods=["POST"])
 @required_user_type(["customer"])
 def add_wishlist_entry(ulid):
+    """
+    Add a new entry to a specific wishlist.
+
+    Args:
+        ulid (str): The unique identifier of the wishlist.
+
+    Returns:
+        JSON response indicating success or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -146,6 +174,15 @@ def add_wishlist_entry(ulid):
 @customer_wishlists_bp.route("/wishlists/<string:ulid>", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist_entry(ulid):
+    """
+    Remove an entry from a specific wishlist.
+
+    Args:
+        ulid (str): The unique identifier of the wishlist.
+
+    Returns:
+        JSON response indicating success or an error message.
+    """
     try:
         validated_data = validate_remove_from_wl.load(request.get_json())
     except ValidationError as err:
@@ -159,9 +196,7 @@ def remove_wishlist_entry(ulid):
             wishlist_id=ulid,
         ).delete()
 
-        return success_response(
-            status_code=200,
-        )
+        return success_response(status_code=200)
 
     except SQLAlchemyError as sql_err:
         db.session.rollback()
@@ -174,6 +209,12 @@ def remove_wishlist_entry(ulid):
 @customer_wishlists_bp.route("/wishlists", methods=["GET"])
 @required_user_type(["customer"])
 def get_wishlists():
+    """
+    Retrieve all wishlists for the authenticated customer.
+
+    Returns:
+        JSON response containing a list of wishlists or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -200,6 +241,12 @@ def get_wishlists():
 @customer_wishlists_bp.route("/wishlists", methods=["POST"])
 @required_user_type(["customer"])
 def upsert_wishlist():
+    """
+    Create a new wishlist or update an existing one.
+
+    Returns:
+        JSON response indicating success or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -249,6 +296,12 @@ def upsert_wishlist():
 @customer_wishlists_bp.route("/wishlists", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_wishlist():
+    """
+    Remove one or more wishlists for the authenticated customer.
+
+    Returns:
+        JSON response indicating success or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -289,3 +342,27 @@ def remove_wishlist():
     except Exception as e:
         db.session.rollback()
         return handle_exception(error=str(e))
+
+
+# This module defines the customer wishlist management endpoints.
+
+# Key features:
+# - Create, retrieve, update, and delete wishlists
+# - Add and remove items from wishlists
+# - Retrieve wishlist contents with detailed product information
+
+# Security considerations:
+# - All endpoints are protected by the @required_user_type decorator, ensuring only customers can access them
+# - The customer ID is obtained from the JWT token, preventing unauthorized access to other users' wishlists
+
+# Note: This module uses SQLAlchemy for database operations and Marshmallow for request validation.
+
+# Error handling:
+# - ValidationErrors are caught and returned as bad requests
+# - SQLAlchemyErrors trigger a database rollback and are handled as exceptions
+# - General exceptions are also caught and handled appropriately
+
+# Future improvements could include:
+# - Implementing pagination for wishlist entries retrieval
+# - Adding support for sharing wishlists between users
+# - Implementing a notification system for price changes on wishlist items

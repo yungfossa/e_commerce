@@ -7,12 +7,25 @@ from utils import assert_eq, before, test
 
 
 def reset():
+    """Reset the database to a clean state."""
     Admin.login("admin@shopsphere.com", "changeme").reset_db()
 
 
 @test("seller should be able to manage orders")
 @before(reset)
 def seller_order_management():
+    """
+    Test the seller's ability to manage orders.
+
+    This test covers the following scenarios:
+    1. Creating a product and listing
+    2. Creating an order as a user
+    3. Retrieving orders as a seller
+    4. Testing order filters
+    5. Retrieving a specific order
+    6. Updating order status
+    """
+    # Set up test users
     admin = Admin.login("admin@shopsphere.com", "changeme")
     seller = Seller.login("sales@amazon.com", "changeme")
     u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
@@ -76,6 +89,7 @@ def seller_order_management():
     # Now we can safely access the order data
     order_id = data["orders"][0]["order_id"]
 
+    # Test get_order
     (order_data, status_code) = seller.get_order(order_id)
     assert_eq(status_code, 200)
     assert "order_id" in order_data

@@ -25,14 +25,18 @@ validate_update_status = UpdateOrderStatusSchema()
 @seller_orders_bp.route("/seller/orders", methods=["GET"])
 @required_user_type(["seller"])
 def get_orders():
+    """
+    Retrieve orders for the authenticated seller with optional filtering and pagination.
+
+    Returns:
+        JSON response containing the filtered and paginated orders.
+    """
     seller_id = get_jwt_identity()
 
     try:
         filters = validate_order_filters.load(request.get_json())
     except ValidationError as err:
-        return bad_request(
-            error=err.messages
-        )  # Change from handle_exception to bad_request
+        return bad_request(error=err.messages)
 
     try:
         query = (
@@ -100,6 +104,15 @@ def get_orders():
 @seller_orders_bp.route("/seller/orders/<string:order_ulid>", methods=["GET"])
 @required_user_type(["seller"])
 def get_order(order_ulid):
+    """
+    Retrieve details of a specific order for the authenticated seller.
+
+    Args:
+        order_ulid (str): The unique identifier of the order.
+
+    Returns:
+        JSON response containing the details of the specified order.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -155,6 +168,15 @@ def get_order(order_ulid):
 @seller_orders_bp.route("/seller/orders/<string:order_ulid>", methods=["POST"])
 @required_user_type(["seller"])
 def update_order_status(order_ulid):
+    """
+    Update the status of a specific order for the authenticated seller.
+
+    Args:
+        order_ulid (str): The unique identifier of the order.
+
+    Returns:
+        JSON response indicating the success of the status update.
+    """
     seller_id = get_jwt_identity()
     config_name = current_app.config["NAME"]
 
@@ -223,3 +245,27 @@ def update_order_status(order_ulid):
     except Exception as e:
         db.session.rollback()
         return handle_exception(error=str(e))
+
+
+# This module defines the routes for handling seller order operations.
+
+# Key features:
+# - Retrieve orders for a seller with filtering and pagination
+# - Get details of a specific order
+# - Update the status of an order
+
+# Security considerations:
+# - All routes are protected by the @required_user_type decorator, ensuring only sellers can access them
+# - The seller ID is obtained from the JWT token, preventing unauthorized access to other sellers' orders
+
+# Note: This module uses SQLAlchemy for database operations and Marshmallow for request validation.
+
+# Error handling:
+# - ValidationErrors are caught and returned as bad requests
+# - SQLAlchemyErrors trigger a database rollback and are handled as exceptions
+# - General exceptions are also caught and handled appropriately
+
+# Future improvements could include:
+# - Implementing more advanced filtering options for orders
+# - Adding support for bulk order status updates
+# - Implementing a notification system for status changes (e.g., email notifications to customers)

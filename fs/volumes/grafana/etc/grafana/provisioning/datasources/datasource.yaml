@@ -1,11 +1,32 @@
+# Grafana datasources configuration
+
 datasources:
-  # Headers are not being propagated correctly.
-  # Setup a source similar to this manually.
+  # Tempo datasource configuration
   - name: Tempo
     type: tempo
     uid: tempo
     url: http://tempo:3200
+    # Note: Headers are not being propagated correctly.
+    # Setup a source similar to this manually.
+
+  # Prometheus datasource configuration
   - name: Prometheus
     type: prometheus
     uid: prometheus
     url: http://prometheus:9090
+
+# This YAML file configures datasources for Grafana.
+# Datasources are used to fetch and visualize metrics and traces.
+
+# Each datasource is defined under the 'datasources' key and includes:
+# - name: A human-readable name for the datasource
+# - type: The type of datasource (e.g., tempo, prometheus)
+# - uid: A unique identifier for the datasource
+# - url: The URL where the datasource can be accessed
+
+# Tempo is used for distributed tracing, while Prometheus is used for metrics.
+# These datasources are typically used in conjunction to provide
+# comprehensive observability for microservices architectures.
+
+# The commented-out note suggests that there might be issues with header
+# propagation for the Tempo datasource, and manual setup might be required.

@@ -24,6 +24,16 @@ validate_edited_listing = EditListingSchema()
 
 
 def listings_summary(entries):
+    """
+    Generate a summary of listings from database entries.
+
+    Args:
+        entries: A list of database entries containing listing information.
+
+    Returns:
+        dict: A dictionary containing a list of formatted listings and an 'is_empty' flag.
+    """
+
     def listing_to_dict(entry):
         return {
             "listing_id": entry.listing_id,
@@ -52,6 +62,12 @@ def listings_summary(entries):
 @seller_listings_bp.route("/seller/listings", methods=["GET"])
 @required_user_type(["seller"])
 def listings():
+    """
+    Retrieve all listings for the authenticated seller.
+
+    Returns:
+        JSON response containing all listings for the seller.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -118,6 +134,12 @@ def listings():
 @seller_listings_bp.route("/seller/listings", methods=["POST"])
 @required_user_type(["seller"])
 def create_listing():
+    """
+    Create a new listing for the authenticated seller.
+
+    Returns:
+        JSON response containing the ID of the newly created listing.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -166,6 +188,15 @@ def create_listing():
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["GET"])
 @required_user_type(["seller"])
 def get_listing(ulid):
+    """
+    Retrieve a specific listing for the authenticated seller.
+
+    Args:
+        ulid (str): The unique identifier of the listing.
+
+    Returns:
+        JSON response containing the details of the specified listing.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -194,6 +225,15 @@ def get_listing(ulid):
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["DELETE"])
 @required_user_type(["seller"])
 def delete_listing(ulid):
+    """
+    Delete a specific listing for the authenticated seller.
+
+    Args:
+        ulid (str): The unique identifier of the listing to be deleted.
+
+    Returns:
+        JSON response indicating the success of the deletion.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -219,6 +259,15 @@ def delete_listing(ulid):
 @seller_listings_bp.route("/seller/listings/<string:ulid>", methods=["PUT"])
 @required_user_type(["seller"])
 def edit_listing(ulid):
+    """
+    Edit a specific listing for the authenticated seller.
+
+    Args:
+        ulid (str): The unique identifier of the listing to be edited.
+
+    Returns:
+        JSON response containing the ID of the updated listing.
+    """
     seller_id = get_jwt_identity()
 
     try:
@@ -253,3 +302,29 @@ def edit_listing(ulid):
     except Exception as e:
         db.session.rollback()
         return handle_exception(error=str(e))
+
+
+# This module defines the routes for handling seller listings operations.
+
+# Key features:
+# - Retrieve all listings for a seller
+# - Create a new listing
+# - Get details of a specific listing
+# - Delete a listing
+# - Edit a listing
+
+# Security considerations:
+# - All routes are protected by the @required_user_type decorator, ensuring only sellers can access them
+# - The seller ID is obtained from the JWT token, preventing unauthorized access to other sellers' listings
+
+# Note: This module uses SQLAlchemy for database operations and Marshmallow for request validation.
+
+# Error handling:
+# - ValidationErrors are caught and returned as bad requests
+# - SQLAlchemyErrors trigger a database rollback and are handled as exceptions
+# - General exceptions are also caught and handled appropriately
+
+# Future improvements could include:
+# - Implementing pagination for the listings retrieval
+# - Adding more advanced filtering options for listings
+# - Implementing bulk operations (e.g., bulk create, update, or delete)

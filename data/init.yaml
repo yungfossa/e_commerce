@@ -1,23 +1,56 @@
+# Initial data configuration for ShopSphere e-commerce application
+
 categories:
   - Tech
   - Food
   - Clothes
 
+# Admin user configuration
 admins:
   - email: admin@shopsphere.com
     name: admin
-    password: changeme
+    password: changeme  # Note: Change this password in production
 
+# Seller accounts configuration
 sellers:
   - email: sales@amazon.com
     name: Amazon Warehouse
-    password: changeme
+    password: changeme  # Note: Change this password in production
   - email: sales@google.com
     name: Google
-    password: changeme
+    password: changeme  # Note: Change this password in production
 
+# Customer accounts configuration
 customers:
   - email: foo@gmail.com
     name: Foo
     surname: Bar
-    password: Password1?
+    password: Password1?  # Note: Change this password in production
+
+# This YAML file contains initial setup data for the ShopSphere e-commerce application.
+# It defines categories, admin accounts, seller accounts, and customer accounts.
+
+# Categories:
+# A list of product categories available in the store.
+
+# Admins:
+# Administrative user accounts with full access to the system.
+# Each admin has an email, name, and password.
+
+# Sellers:
+# Seller accounts that can list and manage products.
+# Each seller has an email, name, and password.
+
+# Customers:
+# Customer accounts for users who can browse and purchase products.
+# Each customer has an email, first name (name), last name (surname), and password.
+
+# Security Note:
+# The passwords in this file are placeholders and should be changed
+# before deploying to a production environment. In a real-world scenario,
+# you would typically not store passwords in plain text like this.
+
+# Usage:
+# This file is likely used to populate the database with initial data
+# when setting up the application for the first time or resetting it to
+# a known state for testing purposes.

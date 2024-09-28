@@ -11,6 +11,12 @@ REVIEW_FILTERS = {
 
 
 class EditCustomerReviewSchema(Schema):
+    """
+    Schema for validating edit requests for customer reviews.
+
+    This schema allows partial updates to review fields.
+    """
+
     title = fields.String(
         required=False, error_messages={"invalid": "Invalid review title"}
     )
@@ -23,6 +29,7 @@ class EditCustomerReviewSchema(Schema):
 
     @post_load
     def get_validated_edited_review(self, data, **kwargs):
+        """Transform validated edit data into the expected format."""
         return {
             "title": data.get("title"),
             "description": data.get("description"),
@@ -31,6 +38,12 @@ class EditCustomerReviewSchema(Schema):
 
 
 class CreateReviewSchema(Schema):
+    """
+    Schema for validating new review creation requests.
+
+    This schema ensures all required fields are present and valid.
+    """
+
     title = fields.String(
         required=True, error_messages={"invalid": "Invalid review title"}
     )
@@ -45,6 +58,15 @@ class CreateReviewSchema(Schema):
 
     @validates_schema
     def validate_rating(self, data, **kwargs):
+        """
+        Validate that the rating is a valid ReviewRate enum value.
+
+        Args:
+            data (dict): The data to validate.
+
+        Raises:
+            ValidationError: If the rating is not a valid ReviewRate enum value.
+        """
         if "rating" in data:
             try:
                 ReviewRate(data["rating"])
@@ -53,6 +75,7 @@ class CreateReviewSchema(Schema):
 
     @post_load
     def get_validated_review(self, data, **kwargs):
+        """Transform validated review data into the expected format."""
         return {
             "title": data["title"],
             "description": data["description"],
@@ -61,6 +84,13 @@ class CreateReviewSchema(Schema):
 
 
 class ReviewFilterSchema(Schema):
+    """
+    Schema for validating review filter parameters.
+
+    This schema defines and validates various filter options for retrieving reviews,
+    including pagination and sorting.
+    """
+
     limit = fields.Integer(
         required=False,
         missing=10,
@@ -82,6 +112,7 @@ class ReviewFilterSchema(Schema):
 
     @post_load
     def get_validated_review_filters(self, data, **kwargs):
+        """Transform validated filter data into the expected format."""
         return {
             "limit": data.get("limit"),
             "offset": data.get("offset"),

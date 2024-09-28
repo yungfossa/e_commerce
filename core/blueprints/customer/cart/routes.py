@@ -21,6 +21,16 @@ validation_remove_from_cart = RemoveFromCartSchema()
 
 
 def cart_summary(entries):
+    """
+    Generate a summary of the cart contents.
+
+    Args:
+        entries: A list of cart entries with associated product and seller information.
+
+    Returns:
+        A dictionary containing cart entries, total price, and empty status.
+    """
+
     def cart_entry_to_dict(entry):
         current_price = entry.price_per_unit
         current_amount = Decimal(current_price * entry.quantity)
@@ -52,6 +62,12 @@ def cart_summary(entries):
 @customer_cart_bp.route("/cart", methods=["GET"])
 @required_user_type(["customer"])
 def get_cart():
+    """
+    Retrieve the current user's cart contents.
+
+    Returns:
+        A JSON response containing the cart summary.
+    """
     cart_id = get_jwt_identity()
 
     try:
@@ -90,6 +106,15 @@ def get_cart():
 @customer_cart_bp.route("/cart", methods=["POST"])
 @required_user_type(["customer"])
 def upsert_cart_entry():
+    """
+    Add or update an item in the user's cart.
+
+    This endpoint handles both adding new items and updating existing ones.
+    If the quantity is set to 0, the item is removed from the cart.
+
+    Returns:
+        A JSON response indicating success or failure of the operation.
+    """
     cart_id = get_jwt_identity()
 
     try:
@@ -151,6 +176,12 @@ def upsert_cart_entry():
 @customer_cart_bp.route("/cart", methods=["DELETE"])
 @required_user_type(["customer"])
 def remove_cart_item():
+    """
+    Remove one or more items from the user's cart.
+
+    Returns:
+        A JSON response indicating success or failure of the operation.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -187,3 +218,30 @@ def remove_cart_item():
     except Exception as e:
         db.session.rollback()
         return handle_exception(error=str(e))
+
+
+# This module defines the customer cart management endpoints.
+
+# Key features:
+# - Retrieve cart contents with detailed product information
+# - Add or update items in the cart
+# - Remove items from the cart
+# - Calculate cart totals and summaries
+
+# Security considerations:
+# - All endpoints are protected by the @required_user_type decorator, ensuring only customers can access them
+# - The cart ID is obtained from the JWT token, preventing unauthorized access to other users' carts
+
+# Note: This module uses SQLAlchemy for database operations and Marshmallow for request validation.
+
+# The cart_summary function provides a consistent format for cart data across different endpoints.
+
+# Error handling:
+# - ValidationErrors are caught and returned as bad requests
+# - SQLAlchemyErrors trigger a database rollback and are handled as exceptions
+# - General exceptions are also caught and handled appropriately
+
+# Future improvements could include:
+# - Batch operations for adding multiple items to the cart at once
+# - Caching mechanisms for frequently accessed cart data
+# - More detailed error messages for specific failure scenarios

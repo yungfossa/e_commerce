@@ -2,12 +2,16 @@ from admin import Admin
 from seller import Seller
 from user import User
 
+# Login as admin and reset the database
 admin = Admin.login("admin@shopsphere.com", "changeme")
 admin.reset_db()
+
+# Add initial categories
 admin.add_category("Food")
 admin.add_category("Drugs")
 admin.add_category("Garden")
 
+# Define products with their details and seller listings
 products = [
     (
         "Pot",
@@ -48,10 +52,13 @@ products = [
     ),
 ]
 
+# Add products and create listings
 for name, description, image, category, listings in products:
+    # Add product
     (product, _) = admin.add_product(name, description, image, category)
     product_id = product["id"]
 
+    # Create listings for the product
     for listing in listings:
         ((email, password), (count, price, quality)) = listing
 

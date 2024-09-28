@@ -20,6 +20,14 @@ validate_product_filters = ProductsFilterSchema()
 @admin_products_bp.route("/admin/products", methods=["PUT"])
 @required_user_type(["admin"])
 def create_product():
+    """
+    Create a new product.
+
+    This endpoint allows an admin to create a new product with the provided details.
+
+    Returns:
+        A JSON response with the new product's ID on success, or an error message on failure.
+    """
     try:
         validated_data = validate_add_product.load(request.get_json())
     except ValidationError as verr:
@@ -54,6 +62,14 @@ def create_product():
 @admin_products_bp.route("/admin/products", methods=["GET"])
 @required_user_type(["admin"])
 def get_products():
+    """
+    Retrieve a list of products.
+
+    This endpoint allows an admin to retrieve a list of products with optional filtering.
+
+    Returns:
+        A JSON response with the list of products and pagination information.
+    """
     try:
         data = validate_product_filters.load(request.get_json())
     except ValidationError as verr:
@@ -96,6 +112,17 @@ def get_products():
 @admin_products_bp.route("/admin/products/<string:product_ulid>", methods=["GET"])
 @required_user_type(["admin"])
 def get_product(product_ulid):
+    """
+    Retrieve a specific product by its ULID.
+
+    This endpoint allows an admin to retrieve details of a specific product.
+
+    Args:
+        product_ulid (str): The ULID of the product to retrieve.
+
+    Returns:
+        A JSON response with the product details on success, or an error message if not found.
+    """
     try:
         p = Product.query.get(product_ulid)
         if not p:
@@ -113,6 +140,14 @@ def get_product(product_ulid):
 @admin_products_bp.route("/admin/category", methods=["GET"])
 @required_user_type(["admin"])
 def get_categories():
+    """
+    Retrieve a list of product categories.
+
+    This endpoint allows an admin to retrieve a list of product categories with pagination.
+
+    Returns:
+        A JSON response with the list of categories.
+    """
     try:
         data = request.get_json()
 
@@ -135,6 +170,14 @@ def get_categories():
 @admin_products_bp.route("/admin/category", methods=["PUT"])
 @required_user_type(["admin"])
 def create_category():
+    """
+    Create a new product category.
+
+    This endpoint allows an admin to create a new product category.
+
+    Returns:
+        A JSON response with the new category's ID on success, or an error message on failure.
+    """
     try:
         validated_data = validate_add_category.load(request.get_json())
     except ValidationError as verr:
@@ -153,6 +196,15 @@ def create_category():
 @admin_products_bp.route("/admin/category", methods=["DELETE"])
 @required_user_type(["admin"])
 def delete_category():
+    """
+    Delete a product category.
+
+    This endpoint allows an admin to delete a product category. If the category contains products,
+    they will be reassigned to a generic category.
+
+    Returns:
+        A JSON response indicating success or an error message on failure.
+    """
     try:
         validated_data = validate_remove_category.load(request.get_json())
     except ValidationError as verr:
@@ -189,3 +241,13 @@ def delete_category():
     except Exception as e:
         db.session.rollback()
         return handle_exception(error=str(e))
+
+
+# This module defines the admin product management endpoints.
+# It includes functionality for creating, retrieving, and managing products and categories.
+# Key features:
+# - CRUD operations for products and categories
+# - Pagination and filtering for product and category retrieval
+# - Error handling for database operations and validation errors
+# - Automatic reassignment of products to a generic category when deleting a category
+# Note: All endpoints require admin privileges, enforced by the @required_user_type decorator.

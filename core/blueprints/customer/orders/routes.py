@@ -37,6 +37,15 @@ validate_order_summary_filters = OrderSummaryFilterSchema()
 @customer_orders_bp.route("/orders", methods=["POST"])
 @required_user_type(["customer"])
 def create_order():
+    """
+    Create a new order for the authenticated customer.
+
+    This function processes the customer's cart, creates a new order, updates inventory,
+    and sends a confirmation email (except in development environment).
+
+    Returns:
+        A JSON response with the new order ID or an error message.
+    """
     config_name = current_app.config["NAME"]
     customer_id = get_jwt_identity()
 
@@ -70,6 +79,7 @@ def create_order():
         ):
             return bad_request(error="Not enough quantity available for this listing")
 
+        # Create new order
         new_order = Order.create(
             customer_id=customer_id,
             price=total_order_price,
@@ -124,6 +134,15 @@ def create_order():
 @customer_orders_bp.route("/orders/<order_ulid>", methods=["GET"])
 @required_user_type(["customer"])
 def get_order_details(order_ulid):
+    """
+    Retrieve details of a specific order for the authenticated customer.
+
+    Args:
+        order_ulid (str): The ULID of the order to retrieve.
+
+    Returns:
+        A JSON response with the order details or an error message.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -172,6 +191,14 @@ def get_order_details(order_ulid):
 @customer_orders_bp.route("/orders/summary", methods=["GET"])
 @required_user_type(["customer"])
 def get_orders_summary():
+    """
+    Retrieve a summary of orders for the authenticated customer.
+
+    This function supports filtering, sorting, and pagination of orders.
+
+    Returns:
+        A JSON response with the list of orders and pagination information.
+    """
     customer_id = get_jwt_identity()
 
     try:
@@ -243,6 +270,18 @@ def get_orders_summary():
 @customer_orders_bp.route("/orders/<order_ulid>/", methods=["DELETE"])
 @required_user_type(["customer"])
 def delete_order(order_ulid):
+    """
+    Cancel a pending order for the authenticated customer.
+
+    This function cancels the order, updates inventory, and sends a cancellation email
+    (except in development environment).
+
+    Args:
+        order_ulid (str): The ULID of the order to cancel.
+
+    Returns:
+        A JSON response indicating success or an error message.
+    """
     customer_id = get_jwt_identity()
     config_name = current_app.config["NAME"]
 
@@ -280,4 +319,7 @@ def delete_order(order_ulid):
         )
 
 
-# TODO missing update order
+# Future improvements could include:
+# - Implementing a more robust inventory management system
+# - Adding support for partial order cancellations
+# - Implementing a retry mechanism for failed email notifications

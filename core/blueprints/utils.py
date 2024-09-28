@@ -19,6 +19,16 @@ email_pattern = re.compile(
 
 
 def required_user_type(types: List[str]):
+    """
+    Decorator to restrict access to specific user types.
+
+    Args:
+        types (List[str]): List of allowed user types.
+
+    Returns:
+        function: Decorated function that checks user type before execution.
+    """
+
     def decorator(func):
         @wraps(func)
         @jwt_required()
@@ -37,6 +47,17 @@ def required_user_type(types: List[str]):
 def success_response(
     message: Optional[str] = None, data: Any = None, status_code: int = 200
 ):
+    """
+    Generate a standardized success response.
+
+    Args:
+        message (Optional[str]): Optional success message.
+        data (Any): Optional data to include in the response.
+        status_code (int): HTTP status code, defaults to 200.
+
+    Returns:
+        tuple: JSON response and status code.
+    """
     response = {}
     if message is not None:
         response["message"] = message
@@ -50,6 +71,19 @@ def success_response(
 
 
 def send_email(subject, sender, recipients, html_body, text_body=None):
+    """
+    Send an email using Flask-Mail.
+
+    Args:
+        subject (str): Email subject.
+        sender (str): Sender's email address.
+        recipients (list): List of recipient email addresses.
+        html_body (str): HTML content of the email.
+        text_body (str, optional): Plain text content of the email.
+
+    Returns:
+        None
+    """
     msg = Message(subject, sender=sender, recipients=recipients)
     msg.body = text_body
     msg.html = html_body
@@ -57,6 +91,15 @@ def send_email(subject, sender, recipients, html_body, text_body=None):
 
 
 def send_confirmation_email(user: User):
+    """
+    Send an account verification email to a user.
+
+    Args:
+        user (User): User object to send the email to.
+
+    Returns:
+        tuple: Success response tuple.
+    """
     token = user.get_account_verification_token()
     confirm_url = url_for("auth.confirm_email", token=token, _external=True)
     send_email(
@@ -73,6 +116,15 @@ def send_confirmation_email(user: User):
 
 
 def send_password_reset_email(user: User):
+    """
+    Send a password reset email to a user.
+
+    Args:
+        user (User): User object to send the email to.
+
+    Returns:
+        tuple: Success response tuple.
+    """
     token = user.get_reset_password_token()
     reset_password_url = url_for("auth.reset_password", token=token, _external=True)
     send_email(
@@ -89,6 +141,16 @@ def send_password_reset_email(user: User):
 
 
 def send_order_confirmation_email(user: User, order_id: str):
+    """
+    Send an order confirmation email to a user.
+
+    Args:
+        user (User): User object to send the email to.
+        order_id (str): ID of the order being confirmed.
+
+    Returns:
+        tuple: Success response tuple.
+    """
     send_email(
         subject="ShopSphere Order Confirmation",
         sender=current_app.config["MAIL_DEFAULT_SENDER"],
@@ -103,6 +165,16 @@ def send_order_confirmation_email(user: User, order_id: str):
 
 
 def send_order_cancellation_email(user: User, order_id: str):
+    """
+    Send an order cancellation email to a user.
+
+    Args:
+        user (User): User object to send the email to.
+        order_id (str): ID of the order being cancelled.
+
+    Returns:
+        tuple: Success response tuple.
+    """
     send_email(
         subject="ShopSphere Order Cancellation",
         sender=current_app.config["MAIL_DEFAULT_SENDER"],
@@ -114,3 +186,26 @@ def send_order_cancellation_email(user: User, order_id: str):
         ),
     )
     return success_response(status_code=200)
+
+
+# This module contains utility functions for the ShopSphere application.
+# It includes functions for user authentication, response formatting, and email sending.
+
+# Key features:
+# - User type-based access control decorator
+# - Standardized success response function
+# - Email sending utilities for various application events (account verification, password reset, order confirmation/cancellation)
+# - RFC 5322 compliant email validation pattern
+
+# Note: This module relies on Flask-Mail for email functionality and Flask-JWT-Extended for authentication.
+# Ensure these extensions are properly configured in the main application.
+
+# Security considerations:
+# - The required_user_type decorator ensures that only authorized user types can access certain routes
+# - Email templates should be carefully reviewed to prevent any potential XSS vulnerabilities
+# - Tokens used in email verification and password reset should have appropriate expiration times
+
+# Future improvements could include:
+# - Adding logging for email sending attempts and results
+# - Implementing rate limiting for email sending to prevent abuse
+# - Adding support for localization in email templates

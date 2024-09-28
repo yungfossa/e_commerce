@@ -1,31 +1,56 @@
+# Tempo Configuration File
+
 server:
-  http_listen_port: 3200
+  http_listen_port: 3200  # Port on which Tempo's HTTP server will listen
 
 query_frontend:
   search:
-    duration_slo: 5s
-    throughput_bytes_slo: 1.073741824e+09
+    duration_slo: 5s  # Service Level Objective for search duration
+    throughput_bytes_slo: 1.073741824e+09  # SLO for search throughput (1GB/s)
   trace_by_id:
-    duration_slo: 5s
+    duration_slo: 5s  # SLO for trace retrieval by ID
 
 distributor:
   receivers:
-    otlp:
+    otlp:  # OpenTelemetry Protocol receiver configuration
       protocols:
-        http:
-        grpc:
+        http:  # Enable HTTP protocol for receiving traces
+        grpc:  # Enable gRPC protocol for receiving traces
 
 ingester:
-  max_block_duration: 5m
+  max_block_duration: 5m  # Maximum duration before closing a block
 
 compactor:
   compaction:
-    block_retention: 1h
+    block_retention: 1h  # How long to retain trace data blocks
 
 storage:
   trace:
-    backend: local
+    backend: local  # Use local filesystem for trace storage
     wal:
-      path: /tmp/tempo/wal
+      path: /tmp/tempo/wal  # Write-Ahead Log path
     local:
-      path: /tmp/tempo/blocks
+      path: /tmp/tempo/blocks  # Path for storing trace blocks
+
+# This YAML file configures Tempo, a high-volume, minimal-dependency trace storage system.
+
+# Key components:
+# 1. Server: Configures the HTTP server for Tempo.
+# 2. Query Frontend: Sets performance objectives for search and trace retrieval operations.
+# 3. Distributor: Configures receivers for ingesting trace data.
+# 4. Ingester: Manages how long Tempo keeps a block open before closing it.
+# 5. Compactor: Handles data retention policies.
+# 6. Storage: Defines how and where trace data is stored.
+
+# This configuration sets up Tempo to:
+# - Listen on port 3200 for HTTP requests
+# - Accept traces via OTLP over both HTTP and gRPC
+# - Store trace data locally with a 1-hour retention period
+# - Use /tmp/tempo/wal for the Write-Ahead Log and /tmp/tempo/blocks for trace blocks
+
+# Note: This appears to be a basic configuration suitable for testing or development.
+# For production use, you might want to consider:
+# - Increasing block retention time
+# - Using a distributed storage backend instead of local storage
+# - Configuring authentication and authorization
+# - Adjusting performance parameters based on your system's capabilities and load
