@@ -75,6 +75,10 @@ def create_app(config_name):
 
     app.register_blueprint(customer_wishlists_bp)
 
+    from core.blueprints.customer.orders import customer_orders_bp
+
+    app.register_blueprint(customer_orders_bp)
+
     from core.blueprints.customer.profile import customer_profile_bp
 
     app.register_blueprint(customer_profile_bp)

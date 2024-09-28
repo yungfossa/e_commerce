@@ -206,7 +206,7 @@ class Customer(User):
         uselist=False,
         cascade=CASCADE_ALL_DELETE_ORPHAN,
     )
-    address: Mapped[Optional["CustomerAddress"]] = relationship(
+    address: Mapped[Optional[List["CustomerAddress"]]] = relationship(
         back_populates="customer",
         uselist=False,
         cascade=CASCADE_ALL_DELETE_ORPHAN,
@@ -340,7 +340,7 @@ class CartEntry(BaseModel):
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
-    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    quantity: Mapped[int]
     cart_id: Mapped[str] = mapped_column(ULID, ForeignKey("carts.customer_id"))
     listing_id: Mapped[str] = mapped_column(ULID, ForeignKey(LISTINGS_ID))
 
@@ -394,6 +394,7 @@ class OrderEntry(BaseModel):
     id: Mapped[str] = mapped_column(
         ULID, primary_key=True, server_default=func.gen_ulid()
     )
+    quantity: Mapped[int]
     order_id: Mapped[str] = mapped_column(ULID, ForeignKey("orders.id"))
     listing_id: Mapped[str] = mapped_column(ULID, ForeignKey(LISTINGS_ID))
 

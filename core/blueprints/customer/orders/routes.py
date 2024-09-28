@@ -3,18 +3,25 @@ from datetime import UTC, datetime
 from flask import Blueprint, current_app, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
-from models import Cart, Listing, Order, OrderEntry, OrderStatus
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from core import db
-from core.blueprints.errors.handlers import handle_exception
-from core.utils import (
-    bad_request,
+from core.blueprints.errors.handlers import bad_request, handle_exception
+from core.blueprints.utils import (
     required_user_type,
     send_order_cancellation_email,
     send_order_confirmation_email,
     success_response,
+)
+from core.models import (
+    Cart,
+    CartEntry,
+    CustomerAddress,
+    Listing,
+    Order,
+    OrderEntry,
+    OrderStatus,
 )
 from core.validators.customer.customer_orders import (
     OrderCreationSchema,
@@ -23,8 +30,6 @@ from core.validators.customer.customer_orders import (
 
 customer_orders_bp = Blueprint("customer_orders", __name__)
 
-config_name = current_app.config["NAME"]
-
 validate_order_creation = OrderCreationSchema()
 validate_order_summary_filters = OrderSummaryFilterSchema()
 
@@ -32,21 +37,30 @@ validate_order_summary_filters = OrderSummaryFilterSchema()
 @customer_orders_bp.route("/orders", methods=["POST"])
 @required_user_type(["customer"])
 def create_order():
+    config_name = current_app.config["NAME"]
     customer_id = get_jwt_identity()
 
     try:
-        validated_data = validate_order_creation.load(data=request.get_json())
+        data = validate_order_creation.load(data=request.get_json())
     except ValidationError as ve:
         return bad_request(error=ve.messages)
 
     try:
-        cart = Cart.query.filter_by(customer_id=customer_id).first()
+        # Fetch the cart and its entry
+        cart_with_entry = (
+            db.session.query(Cart)
+            .options(joinedload(Cart.cart_entry).joinedload(CartEntry.listing))
+            .filter(Cart.customer_id == customer_id)
+            .first()
+        )
 
-        if not cart or not cart.cart_entries:
+        if not cart_with_entry or not cart_with_entry.cart_entry:
             return bad_request(error="The cart is empty")
 
-        total_order_price = sum(
-            entry.price * entry.quantity for entry in cart.cart_entries
+        # Calculate total order price
+        total_order_price = (
+            cart_with_entry.cart_entry.quantity
+            * cart_with_entry.cart_entry.listing.price
         )
 
         new_order = Order.create(
@@ -54,43 +68,44 @@ def create_order():
             price=total_order_price,
             order_status=OrderStatus.PENDING,
             purchased_at=datetime.now(UTC),
-            address_street=validated_data["address_street"],
-            address_city=validated_data["address_city"],
-            address_state=validated_data["address_state"],
-            address_country=validated_data["address_country"],
-            address_postal_code=validated_data["address_postal_code"],
+            address_street=data.get("address_street"),
+            address_city=data.get("address_city"),
+            address_state=data.get("address_state"),
+            address_country=data.get("address_country"),
+            address_postal_code=data.get("address_postal_code"),
         )
 
-        for cart_entry in cart.cart_entries:
-            listing = cart_entry.listing
+        # Create OrderEntry for the cart entry
+        _oe = OrderEntry.create(
+            order_id=new_order.id,
+            listing_id=cart_with_entry.cart_entry.listing_id,
+            quantity=cart_with_entry.cart_entry.quantity,
+        )
 
-            OrderEntry.create(
-                order_id=new_order.id,
-                listing_id=cart_entry.listing_id,
-                quantity=cart_entry.amount,
-                price=listing.price,
-            )
+        # Delete the cart entry
+        db.session.delete(cart_with_entry.cart_entry)
 
-            listing.update(
-                quantity=listing.quantity - cart_entry.amount,
-                purchase_count=listing.purchase_count + cart_entry.amount,
-            )
-
-        for entry in cart.cart_entries:
-            entry.delete()
+        # Add the current CustomerAddress in the db
+        CustomerAddress.create(
+            customer_id=customer_id,
+            street=data.get("address_street"),
+            city=data.get("address_city"),
+            state=data.get("address_state"),
+            country=data.get("address_country"),
+            postal_code=data.get("address_postal_code"),
+        )
 
         if config_name != "development":
             send_order_confirmation_email(customer_id, new_order.id)
 
+        db.session.commit()
         return success_response(data={"id": new_order.id}, status_code=201)
     except SQLAlchemyError as sql_err:
         db.session.rollback()
-        return handle_exception(
-            error=str(sql_err),
-        )
+        return handle_exception(error=str(sql_err))
     except Exception as e:
         db.session.rollback()
-        return handle_exception(message=str(e))
+        return handle_exception(error=str(e))
 
 
 @customer_orders_bp.route("/orders/<order_ulid>", methods=["GET"])
@@ -120,10 +135,10 @@ def get_order_details(order_ulid):
                 {
                     "product_name": entry.listing.product.name,
                     "image_src": entry.listing.product.image_src,
-                    "quantity": entry.listing.quantity,
-                    "price": float(entry.listing.price),
+                    "quantity": entry.quantity,
+                    "price": entry.listing.price,
                 }
-                for entry in order.entries
+                for entry in order.order_entries
             ],
         }
         return success_response(
@@ -136,7 +151,9 @@ def get_order_details(order_ulid):
             error=str(sql_err),
         )
     except Exception as e:
-        return handle_exception(error=str(e))
+        return handle_exception(
+            error=str(e),
+        )
 
 
 @customer_orders_bp.route("/orders/summary", methods=["GET"])
@@ -179,10 +196,10 @@ def get_orders_summary():
                 "entries": [
                     {
                         "product_name": entry.listing.product.name,
-                        "quantity": entry.listing.quantity,
+                        "quantity": entry.quantity,
                         "price": float(entry.listing.price),
                     }
-                    for entry in order.entries
+                    for entry in order.order_entries
                 ],
             }
             for order in orders
@@ -205,13 +222,16 @@ def get_orders_summary():
             error=str(sql_err),
         )
     except Exception as e:
-        return handle_exception(error=str(e))
+        return handle_exception(
+            error=str(e),
+        )
 
 
-@customer_orders_bp.route("/orders/<order_id>/", methods=["DELETE"])
+@customer_orders_bp.route("/orders/<order_ulid>/", methods=["DELETE"])
 @required_user_type(["customer"])
 def delete_order(order_ulid):
     customer_id = get_jwt_identity()
+    config_name = current_app.config["NAME"]
 
     try:
         order = Order.query.filter_by(id=order_ulid, customer_id=customer_id).first()
@@ -242,4 +262,9 @@ def delete_order(order_ulid):
         )
     except Exception as e:
         db.session.rollback()
-        return handle_exception(error=str(e))
+        return handle_exception(
+            error=str(e),
+        )
+
+
+# TODO missing update order

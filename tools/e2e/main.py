@@ -107,3 +107,72 @@ def create_listing():
     assert_eq(status_code, 200)
 
     print(json.dumps(listings, indent=2))
+
+
+@test("a user should be able to create an order")
+@before(reset)
+def create_order():
+    admin = Admin.login("admin@shopsphere.com", "changeme")
+    seller = Seller.login("sales@amazon.com", "changeme")
+    u = User.create(f"{time.time()}@gmail.com", "Password1?", "foo", "bar")
+
+    (product, status_code) = admin.add_product(
+        "iPhone 15",
+        "A phone",
+        "https://upload.wikimedia.org/wikipedia/commons/7/70/Example.png",
+        "Tech",
+    )
+    assert_eq(status_code, 201)
+
+    (listing, status_code) = seller.create_listing(product["id"], 10, 19.99, "new")
+    assert_eq(status_code, 201)
+
+    (listings, status_code) = u.get_listings(product["id"])
+    assert_eq(status_code, 200)
+
+    print(json.dumps(listings, indent=2))
+
+    (cart, status_code) = u.cart()
+    assert_eq(status_code, 200)
+    assert_eq(len(cart["cart_entries"]), 0, "cart must be empty")
+    assert_eq(cart["cart_total"], 0, "cart amount must be equal to 0")
+
+    (cart, status_code) = u.upsert_cart(listing["id"], 1)
+    assert_eq(status_code, 200)
+
+    (cart, status_code) = u.cart()
+    assert_eq(status_code, 200)
+    assert_eq(len(cart["cart_entries"]), 1, "cart must have 1 entry")
+    assert_eq(cart["cart_total"], 19.99, "cart amount must be equal to 19.99")
+
+    (order, status_code) = u.create_order(
+        address_street="Via Genova 2",
+        address_city="San Martino di Lupari",
+        address_state="Padova",
+        address_country="Italy",
+        address_postal_code="35018",
+    )
+    assert_eq(status_code, 201)
+
+    (orders, status_code) = u.get_orders()
+    assert_eq(status_code, 200)
+    assert_eq(
+        orders["pagination"]["total_items"], 1, "user must have 1 order"
+    )  # TODO: check this, is it correct?
+
+    print(json.dumps(orders, indent=2))
+
+    (order, status_code) = u.get_order(order["id"])
+    assert_eq(status_code, 200)
+    assert_eq(order["total_amount"], 19.99)
+    assert_eq(order["status"], "pending")
+    assert_eq(order["address"]["street"], "Via Genova 2")
+    assert_eq(order["address"]["city"], "San Martino di Lupari")
+    assert_eq(order["address"]["state"], "Padova")
+    assert_eq(order["address"]["country"], "Italy")
+    assert_eq(order["address"]["postal_code"], "35018")
+
+    (cart, status_code) = u.cart()
+    assert_eq(status_code, 200)
+    assert_eq(len(cart["cart_entries"]), 0, "cart must be empty")
+    assert_eq(cart["cart_total"], 0, "cart amount must be equal to 0")

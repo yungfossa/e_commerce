@@ -1,4 +1,4 @@
-from marshmallow import ValidationError, fields, post_load, validates
+from marshmallow import Schema, ValidationError, fields, post_load, validates
 
 from core.models import Cart, CartEntry, Listing
 from core.validators.customer.customer_wishlist import BaseSchema
@@ -50,20 +50,17 @@ class CartDetailsSchema(BaseSchema):
         }
 
 
-class UpsertCartSchema(AddToCartSchema):
-    amount = fields.Integer(
+class UpsertCartSchema(Schema):
+    listing_id = fields.String(
+        required=True, error_messages={"required": "Missing listing_id"}
+    )
+    quantity = fields.Integer(
         required=True, error_messages={"required": "Missing amount"}
     )
-
-    @validates("id")
-    def validate_listing(self, value: str):
-        listing = Listing.query.filter_by(id=value).first()
-        if listing is None:
-            raise ValidationError("Invalid listing_id: Listing does not exist.")
 
     @post_load
     def get_validated_cart_data(self, data, **kwargs):
         return {
-            "listing_id": data.get("id"),
-            "amount": data.get("amount"),
+            "listing_id": data.get("listing_id"),
+            "quantity": data.get("quantity"),
         }

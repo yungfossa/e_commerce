@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import ValidationError
@@ -20,23 +22,27 @@ validation_remove_from_cart = RemoveFromCartSchema()
 
 def cart_summary(entries):
     def cart_entry_to_dict(entry):
+        current_price = entry.price_per_unit
+        current_amount = Decimal(current_price * entry.quantity)
         return {
             "product_name": entry.product_name,
             "product_category": entry.product_category,
             "product_img": entry.product_img,
             "product_state": entry.product_state.value,
-            "price_per_unit": entry.price_per_unit,
-            "cart_entry_amount": entry.amount,
-            "total_price_cart_entry": entry.total_priceRemoveCartEntrySchema_cart_entry,
-            "company_name ": entry.company_name,
+            "price_per_unit": current_price,
+            "quantity": entry.quantity,
+            "amount": round(float(current_amount), 2),
+            "company_name": entry.company_name,
         }
 
     items = [cart_entry_to_dict(entry) for entry in entries]
-    total_price = sum(entry.total_price_cart_entry for entry in entries)
+    total_price = sum(
+        Decimal(entry.price_per_unit * entry.quantity) for entry in entries
+    )
 
     return {
         "cart_entries": items,
-        "cart_total": total_price,
+        "cart_total": round(float(total_price), 2),
         "is_empty": len(items) == 0,
     }
 
@@ -60,8 +66,7 @@ def get_cart():
                 Product.image_src.label("product_img"),
                 Listing.product_state,
                 Listing.price.label("price_per_unit"),
-                (Listing.price * CartEntry.amount).label("total_price_cart_entry"),
-                CartEntry.amount,
+                CartEntry.quantity,
                 Seller.company_name,
             )
             .all()
@@ -90,53 +95,52 @@ def upsert_cart_entry():
 
     try:
         listing_id = validated_data.get("listing_id")
-        amount = validated_data.get("amount")
+        quantity = validated_data.get("quantity")
 
-        cart_entry = CartEntry.query.filter(
-            CartEntry.cart_id == cart_id and CartEntry.listing_id == listing_id
-        ).first()
-
-        if not cart_entry:
-            return not_found(error="Cart entry not found")
-
-        if amount == 0:
-            if cart_entry:
-                cart_entry.delete()
-                return success_response(message="Cart entry removed successfully")
-            else:
-                return bad_request(
-                    message="Amount is 0. It is impossible to create a new entry in the cart"
-                )
-
-        listing = Listing.query.filter_by(id=cart_entry.listing_id).first()
-
+        listing = Listing.query.filter_by(id=listing_id).first()
         if not listing:
-            return bad_request(error="Listing not found")
+            return not_found(error="Listing not found")
 
-        if listing.quantity < amount:
+        if listing.quantity < quantity:
             return bad_request(
-                error=f"The selected amount {amount} is "
+                error=f"The selected quantity {quantity} is "
                 f"bigger than the available quantity ({listing.quantity})"
             )
 
+        cart_entry = CartEntry.query.filter_by(
+            cart_id=cart_id, listing_id=listing_id
+        ).first()
+
+        if quantity == 0:
+            if cart_entry:
+                cart_entry.delete()
+                return success_response(
+                    message="Cart entry removed successfully",
+                    status_code=200,
+                )
+            else:
+                return success_response(
+                    message="No action needed, cart entry doesn't exist",
+                    status_code=200,
+                )
+
         if cart_entry:
-            cart_entry.update(amount=amount)
-            return success_response(
-                message="Cart entry amount updated successfully", status_code=200
-            )
+            cart_entry.quantity = quantity
+            cart_entry.update()
+            return success_response(data={"id": cart_entry.id}, status_code=200)
 
         _ce = CartEntry.create(
-            amount=amount,
-            cart_id=cart_id,
-            listing_id=listing_id,
+            cart_id=cart_id, listing_id=listing_id, quantity=quantity
+        )
+        return success_response(
+            data={"id": _ce.id},
+            status_code=200,
         )
 
-        return success_response(data={"id": _ce.id}, status_code=201)
     except SQLAlchemyError as sql_err:
         db.session.rollback()
         return handle_exception(error=str(sql_err))
     except Exception as e:
-        db.session.rollback()
         return handle_exception(error=str(e))
 
 
