@@ -252,8 +252,6 @@ class User:
             },
         )
 
-        print(r.text)
-
         return r.json().get("data"), r.status_code
 
     @logged()

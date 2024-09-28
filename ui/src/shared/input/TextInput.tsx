@@ -53,8 +53,8 @@ export default function TextInput({
 			{icon !== undefined && (
 				<IconWrapper>
 					<FontAwesomeIcon
-						style={{ "margin-right": "0.75rem" }}
-						size="m"
+						style={{ marginRight: "0.75rem" }}
+						size="1x"
 						icon={icon}
 					/>
 				</IconWrapper>

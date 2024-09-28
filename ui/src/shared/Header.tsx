@@ -10,6 +10,8 @@ import TextInput from "../shared/input/TextInput.tsx";
 import { useAppSelector } from "../hooks.ts";
 import { Link } from "react-router-dom";
 import Client from "./client/client.tsx";
+import { useDispatch } from "react-redux";
+import { logout } from "../store/user.ts";
 
 const Wrapper = styled.div`
     width: 100%;
@@ -42,10 +44,18 @@ export default function Header() {
 	const access_token = useAppSelector((s) => s.user.access_token);
 	const client = new Client(access_token);
 
+	const dispatch = useDispatch();
+
 	const [profile, setProfile] = useState<any>(null);
 
 	useEffect(() => {
-		client.get("http://localhost:5000/profile").then((r) => setProfile(r.data));
+		client
+			.get("http://localhost:5000/profile")
+			.then((r) => setProfile(r.data))
+			.catch((e) => {
+				console.log("logging out");
+				dispatch(logout());
+			});
 	}, []);
 
 	return (
@@ -59,7 +69,7 @@ export default function Header() {
 			>
 				<Section>
 					<FontAwesomeIcon
-						style={{ "margin-right": "0.75rem" }}
+						style={{ marginRight: "0.75rem" }}
 						size="2x"
 						icon={faGlobe}
 					/>
@@ -80,7 +90,7 @@ export default function Header() {
 					<div style={{ paddingLeft: "3rem" }} />
 					<Link to="/cart">
 						<FontAwesomeIcon
-							style={{ "margin-right": "0.75rem", color: "white" }}
+							style={{ marginRight: "0.75rem", color: "white" }}
 							size="2x"
 							icon={faShoppingCart}
 						/>

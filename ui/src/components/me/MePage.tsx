@@ -28,12 +28,22 @@ export default function () {
 	const client = new Client(access_token);
 
 	const [profile, setProfile] = useState<any>(null);
+	const [orders, setOrders] = useState<any>(null);
 
 	useEffect(() => {
 		client
 			.get("http://localhost:5000/profile")
 			.then((r) => {
 				setProfile(r.data);
+			})
+			.catch((e) => {
+				showAlert("An error occured", "error");
+				navigate("/");
+			});
+		client
+			.get("http://localhost:5000/orders/summary")
+			.then((r) => {
+				setOrders(r.data);
 			})
 			.catch((e) => {
 				showAlert("An error occured", "error");
@@ -62,6 +72,8 @@ export default function () {
 					Surname: {profile.last_name}
 				</Card>
 			</Wrapper>
+
+			{JSON.stringify(orders)}
 		</>
 	);
 }

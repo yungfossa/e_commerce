@@ -10,11 +10,13 @@ export default class Client {
 			headers: {
 				Authorization: `Bearer ${this.access_token}`,
 			},
-		})
-			.then((r) => r.json())
-			.catch((e) => {
-				throw e;
-			});
+		}).then((r) => {
+			if (r.ok) {
+				return r.json();
+			}
+
+			throw r;
+		});
 	}
 
 	async post(url: string, body: any): Promise<any> {
@@ -25,10 +27,12 @@ export default class Client {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify(body),
-		})
-			.then((r) => r.json())
-			.catch((e) => {
-				throw e;
-			});
+		}).then((r) => {
+			if (r.ok) {
+				return r.json();
+			}
+
+			throw r;
+		});
 	}
 }

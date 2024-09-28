@@ -58,9 +58,11 @@ function createAddToCartFn(client: Client, lid: string) {
 }
 
 export default function ProductsPage() {
+	const { showAlert } = useContext(AlertContext);
+
 	const navigate = useNavigate();
 
-	let { pid, lid } = useParams();
+	const { pid, lid } = useParams();
 
 	const access_token = useAppSelector((s) => s.user.access_token);
 	const client = new Client(access_token);
@@ -77,7 +79,7 @@ export default function ProductsPage() {
 			.then((r) => {
 				setProduct(r.data);
 				if (lid) {
-					setListing(r.data.listings.filter((r) => r.id === lid)[0]);
+					setListing(r.data.listings.filter((r: any) => r.id === lid)[0]);
 				} else {
 					setListing(r.data.listings[0]);
 				}

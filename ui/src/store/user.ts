@@ -53,7 +53,11 @@ export const userSlice = createSlice({
 		status: "unknown",
 		profile: undefined,
 	},
-	reducers: {},
+	reducers: {
+		logout(state) {
+			state.access_token = "";
+		},
+	},
 	extraReducers: (builder) => {
 		builder.addCase(authenticate.pending, (state) => {
 			state.status = "pending";
@@ -68,4 +72,5 @@ export const userSlice = createSlice({
 	},
 });
 
+export const { logout } = userSlice.actions;
 export default userSlice.reducer;
