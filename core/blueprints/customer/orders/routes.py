@@ -63,6 +63,13 @@ def create_order():
             * cart_with_entry.cart_entry.listing.price
         )
 
+        # Check if there's enough quantity available
+        if (
+            cart_with_entry.cart_entry.quantity
+            > cart_with_entry.cart_entry.listing.quantity
+        ):
+            return bad_request(error="Not enough quantity available for this listing")
+
         new_order = Order.create(
             customer_id=customer_id,
             price=total_order_price,
@@ -81,6 +88,12 @@ def create_order():
             listing_id=cart_with_entry.cart_entry.listing_id,
             quantity=cart_with_entry.cart_entry.quantity,
         )
+
+        # Update the listing quantity
+        listing = cart_with_entry.cart_entry.listing
+        listing.quantity -= cart_with_entry.cart_entry.quantity
+        listing.purchase_count += cart_with_entry.cart_entry.quantity
+        listing.update()
 
         # Delete the cart entry
         db.session.delete(cart_with_entry.cart_entry)
